@@ -1,0 +1,24 @@
+{
+  "name": "webappprogramming-flexbox-game",
+  "version": "1.0.0",
+  "description": "a game to help you learn Flexbox!",
+  "homepage": "https://github.com/NoobUsesGitHub/WebAppProgramming-FlexBox-Game#readme",
+  "bugs": {
+    "url": "https://github.com/NoobUsesGitHub/WebAppProgramming-FlexBox-Game/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoobUsesGitHub/WebAppProgramming-FlexBox-Game.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
