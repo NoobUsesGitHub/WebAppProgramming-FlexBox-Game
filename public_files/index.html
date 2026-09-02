@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Flexbox Game Server Test</title>
+	<style>
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			font: 16px/1.5 system-ui, sans-serif;
+			background: #eef4f1;
+			color: #18332b;
+		}
+
+		main {
+			max-width: 32rem;
+			padding: 2rem;
+			text-align: center;
+			background: white;
+			border: 2px solid #79b39b;
+			border-radius: 12px;
+			box-shadow: 0 8px 24px rgb(24 51 43 / 12%);
+		}
+
+		.status {
+			color: #167447;
+			font-weight: 700;
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<h1>Flexbox Game</h1>
+		<p class="status">Server is working.</p>
+		<p>This page was served by Express from <code>public_files/index.html</code>.</p>
+		<p id="time"></p>
+	</main>
+	<script>
+		document.getElementById("time").textContent =
+			"Loaded at " + new Date().toLocaleTimeString();
+	</script>
+</body>
+</html>
