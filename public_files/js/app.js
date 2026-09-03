@@ -20,37 +20,40 @@
 
   const FACE = "#2b2118";
 
-  // Side-view walking puppy (faces right by default). Legs, tail and body carry
-  // classes so CSS can animate a walk cycle while the dog is moving.
+  // Front-facing puppy (looking at the player). Paws, ears, tail and body carry
+  // classes so CSS can animate a little waddle while the dog is moving.
   function svgDog(color) {
     // color = { main, dark }
     return (
       '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
-        // far legs (gait phase A)
-        '<rect class="leg leg-a" x="22" y="38" width="4.6" height="12.5" rx="2.3" fill="' + color.dark + '"/>' +
-        '<rect class="leg leg-a" x="40" y="38" width="4.6" height="12.5" rx="2.3" fill="' + color.dark + '"/>' +
-        // near legs (gait phase B)
-        '<rect class="leg leg-b" x="26" y="39" width="4.6" height="12.5" rx="2.3" fill="' + color.main + '"/>' +
-        '<rect class="leg leg-b" x="36" y="39" width="4.6" height="12.5" rx="2.3" fill="' + color.main + '"/>' +
-        // tail
-        '<path class="tail" d="M19 31 q-8 -1 -10 -8 q5 5 10 3 z" fill="' + color.dark + '"/>' +
+        // back paws (behind body)
+        '<ellipse class="paw paw-b" cx="22" cy="53" rx="4.6" ry="3.6" fill="' + color.dark + '"/>' +
+        '<ellipse class="paw paw-a" cx="42" cy="53" rx="4.6" ry="3.6" fill="' + color.dark + '"/>' +
+        // tail (peeks out behind the body)
+        '<path class="tail" d="M43 41 q10 -2 9 -11 q-1 6 -9 5 z" fill="' + color.dark + '"/>' +
         // body
-        '<ellipse cx="31" cy="33" rx="15" ry="9.2" fill="' + color.main + '"/>' +
+        '<ellipse cx="32" cy="43" rx="13.5" ry="11.5" fill="' + color.main + '"/>' +
         // belly highlight
-        '<ellipse cx="34" cy="36" rx="8" ry="4.6" fill="rgba(255,255,255,.5)"/>' +
+        '<ellipse cx="32" cy="46" rx="8" ry="7.5" fill="rgba(255,255,255,.5)"/>' +
+        // front paws
+        '<ellipse class="paw paw-a" cx="25" cy="54.5" rx="4.9" ry="3.9" fill="' + color.main + '"/>' +
+        '<ellipse class="paw paw-b" cx="39" cy="54.5" rx="4.9" ry="3.9" fill="' + color.main + '"/>' +
+        // ears
+        '<path class="ear ear-l" d="M19 11 q-9 4 -7 17 q7 -2 11 -9 z" fill="' + color.dark + '"/>' +
+        '<path class="ear ear-r" d="M45 11 q9 4 7 17 q-7 -2 -11 -9 z" fill="' + color.dark + '"/>' +
         // head
-        '<circle cx="46" cy="26" r="9.6" fill="' + color.main + '"/>' +
-        // ear
-        '<path class="ear" d="M43 18 q-5 -5 -1 -10 q4 3 5 9 z" fill="' + color.dark + '"/>' +
-        // snout
-        '<ellipse cx="54" cy="28.5" rx="5.2" ry="4.2" fill="rgba(255,255,255,.82)"/>' +
-        // nose
-        '<circle cx="57.6" cy="27.4" r="2" fill="' + FACE + '"/>' +
-        // mouth
-        '<path d="M55 31.4 q-1.6 2 -4 .8" stroke="' + FACE + '" stroke-width="1.3" fill="none" stroke-linecap="round"/>' +
-        // eye
-        '<circle cx="47.5" cy="24" r="2" fill="' + FACE + '"/>' +
-        '<circle cx="48.3" cy="23.3" r=".7" fill="#fff"/>' +
+        '<circle cx="32" cy="24" r="15" fill="' + color.main + '"/>' +
+        // muzzle
+        '<ellipse cx="32" cy="30" rx="8.2" ry="6.2" fill="rgba(255,255,255,.82)"/>' +
+        // eyes
+        '<circle cx="25.6" cy="22" r="2.7" fill="' + FACE + '"/>' +
+        '<circle cx="38.4" cy="22" r="2.7" fill="' + FACE + '"/>' +
+        '<circle cx="26.6" cy="21.1" r=".9" fill="#fff"/>' +
+        '<circle cx="39.4" cy="21.1" r=".9" fill="#fff"/>' +
+        // nose + mouth
+        '<ellipse cx="32" cy="27.6" rx="2.8" ry="2.1" fill="' + FACE + '"/>' +
+        '<path d="M32 29.7 v2.4 M32 32.1 q-2.6 2 -5 .3 M32 32.1 q2.6 2 5 .3" ' +
+          'stroke="' + FACE + '" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
       "</svg>"
     );
   }
@@ -197,10 +200,6 @@
       const dx = firsts[i].left - last.left;
       const dy = firsts[i].top - last.top;
       if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
-
-      // Face the direction of horizontal travel.
-      const pup = d.firstElementChild;
-      if (pup && Math.abs(dx) > 1) pup.classList.toggle("face-left", dx > 0);
 
       d.classList.add("walking");
       d.style.transition = "none";

@@ -9,7 +9,9 @@
   /* Neutral stone palette */
   --bg:        #faf9f7;
   --surface:   #ffffff;
-  --board-bg:  #f4f2ee;
+  --board-bg:  #e9f4e0;   /* soft park grass */
+  --board-grid:rgba(104, 150, 84, .16);
+  --board-edge:#c3d9b2;
   --ink:       #1c1917;   /* stone-900 */
   --ink-soft:  #57534e;   /* stone-600 */
   --muted:     #8a827a;   /* stone-500 */
@@ -223,11 +225,14 @@ body {
   max-width: 100%;
   border-radius: var(--radius);
   background-color: var(--board-bg);
+  /* Clear alignment grid so positions and rows/columns read at a glance. */
   background-image:
-    radial-gradient(var(--line-strong) 1.4px, transparent 1.4px);
-  background-size: 22px 22px;
-  border: 2px dashed var(--line-strong);
-  box-shadow: var(--shadow);
+    linear-gradient(var(--board-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--board-grid) 1px, transparent 1px);
+  background-size: var(--item) var(--item);
+  background-position: center;
+  border: 2px dashed var(--board-edge);
+  box-shadow: var(--shadow), inset 0 0 0 6px rgba(255, 255, 255, .35);
   overflow: hidden;
 }
 
@@ -275,28 +280,30 @@ body {
 .dog { will-change: transform; }
 
 .pup {
-  width: 62%;              /* puppy noticeably smaller than the kennel */
-  height: 62%;
+  width: 78%;              /* bigger puppy, still nestles inside the kennel */
+  height: 78%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .pup svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
-/* Face the direction of travel. */
-.dog.face-left .pup { transform: scaleX(-1); }
-
-/* Walk cycle — legs swing, body bobs, tail wags faster while moving. */
-.pup svg .leg { transform-box: fill-box; transform-origin: 50% 8%; }
+/* Walk cycle — body bobs, paws step, ears flap, tail wags while moving. */
+.pup svg .paw { transform-box: fill-box; transform-origin: 50% 50%; }
+.pup svg .ear { transform-box: fill-box; }
+.pup svg .ear-l { transform-origin: 88% 12%; }
+.pup svg .ear-r { transform-origin: 12% 12%; }
 .pup svg .tail {
   transform-box: fill-box;
-  transform-origin: 82% 68%;
+  transform-origin: 12% 78%;
   animation: tail-wag 1.1s ease-in-out infinite;
 }
-.dog.walking .pup svg { animation: pup-bob .42s ease-in-out infinite; }
-.dog.walking .pup svg .leg-a { animation: leg-swing-a .42s ease-in-out infinite; }
-.dog.walking .pup svg .leg-b { animation: leg-swing-b .42s ease-in-out infinite; }
-.dog.walking .pup svg .tail  { animation: tail-wag .32s ease-in-out infinite; }
+.dog.walking .pup svg        { animation: pup-bob .4s ease-in-out infinite; }
+.dog.walking .pup svg .paw-a { animation: paw-step-a .4s ease-in-out infinite; }
+.dog.walking .pup svg .paw-b { animation: paw-step-b .4s ease-in-out infinite; }
+.dog.walking .pup svg .ear-l { animation: ear-flap .4s ease-in-out infinite; }
+.dog.walking .pup svg .ear-r { animation: ear-flap .4s ease-in-out infinite reverse; }
+.dog.walking .pup svg .tail  { animation: tail-wag .3s ease-in-out infinite; }
 
 .board.solved .pup svg { animation: dog-hop .5s ease-out; }
 
@@ -565,14 +572,19 @@ body {
   100% { transform: translateY(0); }
 }
 
-@keyframes leg-swing-a {
-  0%, 100% { transform: rotate(22deg); }
-  50%      { transform: rotate(-22deg); }
+@keyframes paw-step-a {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2.6px); }
 }
 
-@keyframes leg-swing-b {
-  0%, 100% { transform: rotate(-22deg); }
-  50%      { transform: rotate(22deg); }
+@keyframes paw-step-b {
+  0%, 100% { transform: translateY(-2.6px); }
+  50%      { transform: translateY(0); }
+}
+
+@keyframes ear-flap {
+  0%, 100% { transform: rotate(-7deg); }
+  50%      { transform: rotate(7deg); }
 }
 
 @keyframes pup-bob {
