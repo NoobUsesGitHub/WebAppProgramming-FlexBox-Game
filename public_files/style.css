@@ -7,11 +7,8 @@
 
 :root {
   /* Neutral stone palette */
-  --bg:        #faf9f7;
+  --bg:        #e9f4e0;   /* soft park grass — the whole page ground */
   --surface:   #ffffff;
-  --board-bg:  #e9f4e0;   /* soft park grass */
-  --board-grid:rgba(104, 150, 84, .16);
-  --board-edge:#c3d9b2;
   --ink:       #1c1917;   /* stone-900 */
   --ink-soft:  #57534e;   /* stone-600 */
   --muted:     #8a827a;   /* stone-500 */
@@ -223,17 +220,8 @@ body {
   width: var(--board-size);
   height: var(--board-size);
   max-width: 100%;
-  border-radius: var(--radius);
-  background-color: var(--board-bg);
-  /* Clear alignment grid so positions and rows/columns read at a glance. */
-  background-image:
-    linear-gradient(var(--board-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--board-grid) 1px, transparent 1px);
-  background-size: var(--item) var(--item);
-  background-position: center;
-  border: 2px dashed var(--board-edge);
-  box-shadow: var(--shadow), inset 0 0 0 6px rgba(255, 255, 255, .35);
-  overflow: hidden;
+  /* No outline, no background — the play area blends into the page ground. */
+  overflow: visible;
 }
 
 /* Both layers share identical box metrics so dogs land exactly over kennels. */
