@@ -36,6 +36,7 @@
   --shadow-sm: 0 1px 2px rgba(28,25,23,.06);
 
   --board-size: clamp(320px, 42vw, 480px);
+  --item: 80px;   /* the shared dog/kennel box */
   --font: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
@@ -254,33 +255,50 @@ body {
   z-index: 2;
 }
 
-/* ------------------------------ Dogs ------------------------------------ */
-.dog {
-  flex: 0 0 auto;           /* no explicit width — flexbox controls layout */
-  width: 62px;
-  height: 62px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform .35s ease-out;
-}
-
-.dog svg { width: 100%; height: 100%; display: block; }
-
-.board.solved .dog { animation: dog-hop .5s ease-out; }
-
-/* ----------------------------- Kennels ---------------------------------- */
+/* ---------------------- Dogs & kennels (same box) ----------------------- */
+/* Dog and kennel share the SAME flex box (so the dogs land exactly on the
+   kennels), but the kennel art fills the box while the dog art is smaller —
+   the kennel reads as bigger than the puppy. */
+.dog,
 .kennel {
-  flex: 0 0 auto;
-  width: 62px;
-  height: 62px;
+  flex: 0 0 auto;           /* no explicit sizing beyond the box — flexbox lays out */
+  width: var(--item);
+  height: var(--item);
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: .5;
 }
 
-.kennel svg { width: 100%; height: 100%; display: block; }
+.kennel { opacity: .62; }
+.kennel svg { width: 100%; height: 100%; display: block; }   /* kennel = full box */
+
+.dog { will-change: transform; }
+
+.pup {
+  width: 62%;              /* puppy noticeably smaller than the kennel */
+  height: 62%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pup svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* Face the direction of travel. */
+.dog.face-left .pup { transform: scaleX(-1); }
+
+/* Walk cycle — legs swing, body bobs, tail wags faster while moving. */
+.pup svg .leg { transform-box: fill-box; transform-origin: 50% 8%; }
+.pup svg .tail {
+  transform-box: fill-box;
+  transform-origin: 82% 68%;
+  animation: tail-wag 1.1s ease-in-out infinite;
+}
+.dog.walking .pup svg { animation: pup-bob .42s ease-in-out infinite; }
+.dog.walking .pup svg .leg-a { animation: leg-swing-a .42s ease-in-out infinite; }
+.dog.walking .pup svg .leg-b { animation: leg-swing-b .42s ease-in-out infinite; }
+.dog.walking .pup svg .tail  { animation: tail-wag .32s ease-in-out infinite; }
+
+.board.solved .pup svg { animation: dog-hop .5s ease-out; }
 
 /* ------------------------------ Panel ----------------------------------- */
 .panel {
@@ -545,6 +563,26 @@ body {
   0%   { transform: translateY(0); }
   40%  { transform: translateY(-14px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes leg-swing-a {
+  0%, 100% { transform: rotate(22deg); }
+  50%      { transform: rotate(-22deg); }
+}
+
+@keyframes leg-swing-b {
+  0%, 100% { transform: rotate(-22deg); }
+  50%      { transform: rotate(22deg); }
+}
+
+@keyframes pup-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2.5px); }
+}
+
+@keyframes tail-wag {
+  0%, 100% { transform: rotate(-12deg); }
+  50%      { transform: rotate(14deg); }
 }
 
 @keyframes confetti-fall {

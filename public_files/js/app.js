@@ -20,28 +20,37 @@
 
   const FACE = "#2b2118";
 
+  // Side-view walking puppy (faces right by default). Legs, tail and body carry
+  // classes so CSS can animate a walk cycle while the dog is moving.
   function svgDog(color) {
     // color = { main, dark }
     return (
       '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
+        // far legs (gait phase A)
+        '<rect class="leg leg-a" x="22" y="38" width="4.6" height="12.5" rx="2.3" fill="' + color.dark + '"/>' +
+        '<rect class="leg leg-a" x="40" y="38" width="4.6" height="12.5" rx="2.3" fill="' + color.dark + '"/>' +
+        // near legs (gait phase B)
+        '<rect class="leg leg-b" x="26" y="39" width="4.6" height="12.5" rx="2.3" fill="' + color.main + '"/>' +
+        '<rect class="leg leg-b" x="36" y="39" width="4.6" height="12.5" rx="2.3" fill="' + color.main + '"/>' +
         // tail
-        '<path d="M50 40 q10 -2 9 -11 q-1 6 -9 6 z" fill="' + color.dark + '"/>' +
-        // ears
-        '<ellipse cx="17" cy="26" rx="8" ry="13" fill="' + color.dark + '"/>' +
-        '<ellipse cx="47" cy="26" rx="8" ry="13" fill="' + color.dark + '"/>' +
+        '<path class="tail" d="M19 31 q-8 -1 -10 -8 q5 5 10 3 z" fill="' + color.dark + '"/>' +
+        // body
+        '<ellipse cx="31" cy="33" rx="15" ry="9.2" fill="' + color.main + '"/>' +
+        // belly highlight
+        '<ellipse cx="34" cy="36" rx="8" ry="4.6" fill="rgba(255,255,255,.5)"/>' +
         // head
-        '<circle cx="32" cy="34" r="18" fill="' + color.main + '"/>' +
-        // muzzle
-        '<ellipse cx="32" cy="41" rx="10" ry="8" fill="rgba(255,255,255,.78)"/>' +
-        // eyes
-        '<circle cx="25.5" cy="31" r="2.7" fill="' + FACE + '"/>' +
-        '<circle cx="38.5" cy="31" r="2.7" fill="' + FACE + '"/>' +
-        '<circle cx="26.4" cy="30.1" r=".9" fill="#fff"/>' +
-        '<circle cx="39.4" cy="30.1" r=".9" fill="#fff"/>' +
-        // nose + mouth
-        '<ellipse cx="32" cy="37.5" rx="3" ry="2.2" fill="' + FACE + '"/>' +
-        '<path d="M32 39.7 v2.6 M32 42.3 q-3 2.2 -5.6 .2 M32 42.3 q3 2.2 5.6 .2" ' +
-          'stroke="' + FACE + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+        '<circle cx="46" cy="26" r="9.6" fill="' + color.main + '"/>' +
+        // ear
+        '<path class="ear" d="M43 18 q-5 -5 -1 -10 q4 3 5 9 z" fill="' + color.dark + '"/>' +
+        // snout
+        '<ellipse cx="54" cy="28.5" rx="5.2" ry="4.2" fill="rgba(255,255,255,.82)"/>' +
+        // nose
+        '<circle cx="57.6" cy="27.4" r="2" fill="' + FACE + '"/>' +
+        // mouth
+        '<path d="M55 31.4 q-1.6 2 -4 .8" stroke="' + FACE + '" stroke-width="1.3" fill="none" stroke-linecap="round"/>' +
+        // eye
+        '<circle cx="47.5" cy="24" r="2" fill="' + FACE + '"/>' +
+        '<circle cx="48.3" cy="23.3" r=".7" fill="#fff"/>' +
       "</svg>"
     );
   }
@@ -164,9 +173,54 @@
     return values;
   }
 
-  // Push the player's current typed values onto the player (dogs) layer.
-  function updatePlayerLayer() {
+  var REDUCED = false;
+  try {
+    REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch (e) { /* no matchMedia */ }
+
+  // Push the player's typed values onto the dogs layer. When `animate` is true,
+  // the dogs walk to their new spots using a FLIP transition (measure First,
+  // apply Last, invert, then play), with a walk-cycle class while in motion.
+  function updatePlayerLayer(animate) {
+    const dogs = Array.prototype.slice.call(el.player.children);
+    if (animate && REDUCED) animate = false;
+
+    const firsts = animate
+      ? dogs.map(function (d) { return d.getBoundingClientRect(); })
+      : null;
+
     applyLayerStyles(el.player, readInputs());
+    if (!animate) return;
+
+    dogs.forEach(function (d, i) {
+      const last = d.getBoundingClientRect();
+      const dx = firsts[i].left - last.left;
+      const dy = firsts[i].top - last.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+
+      // Face the direction of horizontal travel.
+      const pup = d.firstElementChild;
+      if (pup && Math.abs(dx) > 1) pup.classList.toggle("face-left", dx > 0);
+
+      d.classList.add("walking");
+      d.style.transition = "none";
+      d.style.transform = "translate(" + dx + "px, " + dy + "px)";
+
+      // Next frame: release to the real position so it transitions (walks) there.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          d.style.transition = "transform .55s cubic-bezier(.34, 1.12, .64, 1)";
+          d.style.transform = "";
+        });
+      });
+
+      window.clearTimeout(d._walkTimer);
+      d._walkTimer = window.setTimeout(function () {
+        d.classList.remove("walking");
+        d.style.transition = "";
+        d.style.transform = "";
+      }, 600);
+    });
   }
 
   /* ---------------------------- Rendering ------------------------------- */
@@ -232,7 +286,10 @@
 
       const dog = document.createElement("div");
       dog.className = "dog";
-      dog.innerHTML = svgDog(PALETTE[i % PALETTE.length]);
+      const pup = document.createElement("div");
+      pup.className = "pup";
+      pup.innerHTML = svgDog(PALETTE[i % PALETTE.length]);
+      dog.appendChild(pup);
       el.player.appendChild(dog);
     }
   }
@@ -268,7 +325,7 @@
 
       // Live preview as the player types; clear any stale feedback.
       input.addEventListener("input", function () {
-        updatePlayerLayer();
+        updatePlayerLayer(true);
         clearFeedback();
       });
       // Enter checks the solution.
@@ -382,7 +439,7 @@
     // Clear the typed values so the player starts the level over.
     const inputs = el.controls.querySelectorAll("input");
     inputs.forEach(function (input) { input.value = ""; });
-    updatePlayerLayer();
+    updatePlayerLayer(true);
     clearFeedback();
     el.board.classList.remove("solved");
     el.nextBtn.classList.add("hidden");
