@@ -16,10 +16,11 @@
   --line:      #e7e5e4;   /* stone-200 */
   --line-strong:#d6d3d1;  /* stone-300 */
 
-  /* Warm amber accent (single accent, used sparingly) */
-  --accent:      #b45309; /* amber-700 */
-  --accent-soft: #fef3e2;
-  --accent-line: #f4d9b0;
+  /* Playful, kid-friendly accent (single accent) */
+  --accent:      #2aa7e0; /* friendly sky blue */
+  --accent-deep: #1b8fc4; /* darker for hover/press */
+  --accent-soft: #e7f5fc;
+  --accent-line: #bce4f6;
 
   /* Feedback */
   --ok:        #15803d;
@@ -34,7 +35,7 @@
   --shadow:    0 1px 2px rgba(28,25,23,.05), 0 8px 24px rgba(28,25,23,.06);
   --shadow-sm: 0 1px 2px rgba(28,25,23,.06);
 
-  --board-size: 380px;
+  --board-size: clamp(320px, 42vw, 480px);
   --font: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
@@ -55,12 +56,13 @@ body {
 }
 
 .app {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 24px 48px;
+  padding: 28px 28px 32px;
+  min-height: 100vh;          /* fill the screen */
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
 }
 
 /* ----------------------------- Header ----------------------------------- */
@@ -124,68 +126,82 @@ body {
   color: var(--muted);
 }
 
-/* --------------------------- Level strip -------------------------------- */
-.level-strip {
+/* --------------------------- Progress bar ------------------------------- */
+.level-strip { display: flex; }
+
+.progress-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  width: 100%;
 }
 
-.level-chip {
-  --dot: var(--line-strong);
+.pnode {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 13px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border: 2px solid var(--line-strong);
   cursor: pointer;
-  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .12s ease;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .12s ease, box-shadow .2s ease;
 }
 
-.level-chip::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--dot);
-  transition: background .2s ease;
-}
+.pnode svg { width: 17px; height: 17px; }
 
-.level-chip:hover:not(:disabled) {
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-}
-
-.level-chip:disabled {
-  cursor: not-allowed;
-  opacity: .55;
-}
-
-.level-chip.is-complete { --dot: var(--ok); color: var(--ink); }
-
-.level-chip.is-active {
-  color: #fff;
+.pnode.is-complete {
   background: var(--accent);
   border-color: var(--accent);
-  --dot: rgba(255,255,255,.9);
+  color: #fff;
 }
 
-.level-chip:focus-visible {
+.pnode.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.pnode.is-locked {
+  cursor: not-allowed;
+  color: var(--line-strong);
+  background: var(--bg);
+  border-color: var(--line);
+}
+
+.pnode:not(:disabled):hover { transform: translateY(-1px); }
+
+.pnode:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+.pconnector {
+  flex: 1 1 auto;
+  min-width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  transition: background .3s ease;
+}
+
+.pconnector.is-filled { background: var(--accent); }
+
 /* ----------------------------- Game area -------------------------------- */
 .game {
   display: flex;
+  flex-direction: row-reverse;   /* board on the LEFT, panel on the right */
   flex-wrap: wrap;
-  gap: 28px;
-  align-items: stretch;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;                /* grow to fill the screen height */
 }
 
 .board-side {
@@ -307,8 +323,8 @@ body {
   margin: 0;
   color: var(--ink-soft);
   font-size: 15.5px;
-  background: #faf6f0;
-  border: 1px solid var(--line);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
   border-inline-start: 3px solid var(--accent);
   border-radius: 10px;
   padding: 13px 15px;
@@ -407,7 +423,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.btn-primary:hover { background: #9a4708; }
+.btn-primary:hover { background: var(--accent-deep); }
 
 .btn-ghost {
   background: var(--surface);
@@ -540,6 +556,7 @@ body {
 /* --------------------------- Responsive --------------------------------- */
 /* Stack the board and panel on narrower screens; scale the board down whole. */
 @media (max-width: 767px) {
+  :root { --board-size: min(86vw, 420px); }
   .game { flex-direction: column; align-items: center; }
   .board-side { width: 100%; }
   .panel { width: 100%; min-height: auto; }   /* no forced height when stacked */
@@ -549,12 +566,7 @@ body {
 }
 
 @media (max-width: 430px) {
-  :root { --board-size: 320px; }
-  .app { padding: 24px 16px 40px; }
-}
-
-@media (max-width: 350px) {
-  :root { --board-size: 280px; }
+  .app { padding: 20px 14px 26px; }
 }
 
 /* ------------------------ Reduced motion -------------------------------- */

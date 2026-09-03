@@ -170,31 +170,50 @@
   }
 
   /* ---------------------------- Rendering ------------------------------- */
+  var CHECK_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
+  // Progress bar of level nodes. A level is playable only if it's already
+  // completed or is the current level; every unsolved future level is disabled.
   function renderStrip() {
     el.strip.innerHTML = "";
-    let highestCompleted = -1;
-    LEVELS.forEach(function (lvl, i) {
-      if (completed.has(lvl.id)) highestCompleted = Math.max(highestCompleted, i);
-    });
-    const unlockedUpTo = Math.min(highestCompleted + 1, LEVELS.length - 1);
+    const bar = document.createElement("div");
+    bar.className = "progress-bar";
 
     LEVELS.forEach(function (lvl, i) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "level-chip";
-      chip.textContent = "שלב " + lvl.id;
-      if (completed.has(lvl.id)) chip.classList.add("is-complete");
-      if (i === current) chip.classList.add("is-active");
+      const done = completed.has(lvl.id);
+      const active = i === current;
+      const locked = !done && !active;
 
-      const reachable = i <= Math.max(unlockedUpTo, current);
-      chip.disabled = !reachable;
-      chip.setAttribute("aria-current", i === current ? "true" : "false");
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = "pnode";
+      if (done) node.classList.add("is-complete");
+      if (active) node.classList.add("is-active");
+      if (locked) node.classList.add("is-locked");
 
-      chip.addEventListener("click", function () {
-        if (i !== current) loadLevel(i);
+      node.disabled = locked;
+      node.innerHTML = done ? CHECK_SVG : String(lvl.id);
+      node.setAttribute(
+        "aria-label",
+        "שלב " + lvl.id + (done ? " — הושלם" : active ? " — נוכחי" : " — נעול")
+      );
+      if (active) node.setAttribute("aria-current", "step");
+
+      node.addEventListener("click", function () {
+        if (!locked && i !== current) loadLevel(i);
       });
-      el.strip.appendChild(chip);
+      bar.appendChild(node);
+
+      if (i < LEVELS.length - 1) {
+        const conn = document.createElement("div");
+        conn.className = "pconnector" + (done ? " is-filled" : "");
+        bar.appendChild(conn);
+      }
     });
+
+    el.strip.appendChild(bar);
   }
 
   function renderProgress() {
@@ -406,7 +425,7 @@
 
   /* ---------------------------- Confetti -------------------------------- */
   function launchConfetti() {
-    const colors = PALETTE.map(function (c) { return c.main; }).concat(["#b45309", "#15803d"]);
+    const colors = PALETTE.map(function (c) { return c.main; }).concat(["#2aa7e0", "#15803d"]);
     const count = 28;
     for (let i = 0; i < count; i++) {
       const piece = document.createElement("div");
