@@ -170,10 +170,12 @@ body {
 
 .pnode.is-locked {
   cursor: not-allowed;
-  color: var(--line-strong);
-  background: var(--bg);
-  border-color: var(--line);
+  color: var(--muted);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  border-style: dashed;
 }
+.pnode.is-locked svg { width: 14px; height: 14px; opacity: .7; }
 
 .pnode:not(:disabled):hover { transform: translateY(-1px); }
 
@@ -224,6 +226,15 @@ body {
   overflow: visible;
 }
 
+/* Decorative park scenery, sits behind the kennels and dogs. */
+.board-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.scene-svg { width: 100%; height: 100%; display: block; }
+
 /* Both layers share identical box metrics so dogs land exactly over kennels. */
 .layer {
   display: flex;
@@ -265,7 +276,37 @@ body {
 .kennel { opacity: .62; }
 .kennel svg { width: 100%; height: 100%; display: block; }   /* kennel = full box */
 
-.dog { will-change: transform; }
+.dog { will-change: transform; position: relative; }
+
+/* "Woof!" speech bubble on success */
+.woof {
+  position: absolute;
+  bottom: 76%;
+  left: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  animation: woof-pop 1.4s ease-out forwards;
+}
+.woof::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--surface);
+  margin-top: -1px;
+}
 
 .pup {
   width: 78%;              /* bigger puppy, still nestles inside the kennel */
@@ -558,6 +599,13 @@ body {
   0%   { transform: translateY(0); }
   40%  { transform: translateY(-14px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes woof-pop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.7); }
+  16%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  70%  { opacity: 1; transform: translateX(-50%) translateY(-7px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-18px) scale(.95); }
 }
 
 @keyframes paw-step-a {

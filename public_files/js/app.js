@@ -227,6 +227,11 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 
+  var LOCK_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
   // Progress bar of level nodes. A level is playable only if it's already
   // completed or is the current level; every unsolved future level is disabled.
   function renderStrip() {
@@ -247,11 +252,10 @@
       if (locked) node.classList.add("is-locked");
 
       node.disabled = locked;
-      node.innerHTML = done ? CHECK_SVG : String(lvl.id);
-      node.setAttribute(
-        "aria-label",
-        "שלב " + lvl.id + (done ? " — הושלם" : active ? " — נוכחי" : " — נעול")
-      );
+      node.innerHTML = done ? CHECK_SVG : locked ? LOCK_SVG : String(lvl.id);
+      const state = done ? " — הושלם" : active ? " — נוכחי" : " — נעול";
+      node.setAttribute("aria-label", "שלב " + lvl.id + state);
+      node.title = "שלב " + lvl.id + " · " + lvl.title + state;   // hover tooltip
       if (active) node.setAttribute("aria-current", "step");
 
       node.addEventListener("click", function () {
@@ -411,10 +415,24 @@
     }
   }
 
+  // Little "Woof!" speech bubbles above the dogs when the level is solved.
+  function popWoofs() {
+    const dogs = Array.prototype.slice.call(el.player.children);
+    dogs.forEach(function (d, i) {
+      const bubble = document.createElement("div");
+      bubble.className = "woof";
+      bubble.textContent = "Woof!";
+      bubble.style.animationDelay = (i * 0.08) + "s";
+      d.appendChild(bubble);
+      window.setTimeout(function () { bubble.remove(); }, 1500 + i * 80);
+    });
+  }
+
   function onSolved(level) {
     showFeedback("כל הכבוד! הכלבים הגיעו הביתה.", "ok");
     el.board.classList.add("solved");
     launchConfetti();
+    popWoofs();
 
     if (!completed.has(level.id)) {
       completed.add(level.id);

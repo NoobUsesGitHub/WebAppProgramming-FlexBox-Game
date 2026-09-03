@@ -52,6 +52,33 @@
       <section class="board-side" aria-label="לוח המשחק">
         <div class="board-scale">
           <div class="board" id="board">
+            <!-- Decorative park scenery (behind the play layers, non-interactive). -->
+            <div class="board-scene" aria-hidden="true">
+              <svg class="scene-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                <!-- sun -->
+                <circle cx="88" cy="12" r="8" fill="#f6e6a4" opacity=".6"/>
+                <!-- soft clouds -->
+                <g fill="#ffffff" opacity=".55">
+                  <ellipse cx="20" cy="15" rx="8" ry="3.4"/>
+                  <ellipse cx="26" cy="14" rx="5" ry="3"/>
+                </g>
+                <!-- grassy mound -->
+                <path d="M-2 89 Q28 81 54 88 T102 87 V103 H-2 Z" fill="#d4e8cd" opacity=".85"/>
+                <!-- bushes -->
+                <g fill="#c2dcab">
+                  <circle cx="11" cy="91" r="7"/>
+                  <circle cx="18" cy="93" r="5.5"/>
+                  <circle cx="87" cy="92" r="7"/>
+                  <circle cx="80" cy="94" r="5"/>
+                </g>
+                <!-- little flowers -->
+                <g opacity=".8">
+                  <circle cx="42" cy="95" r="1.6" fill="#e7bcd4"/>
+                  <circle cx="61" cy="96" r="1.6" fill="#f4d59a"/>
+                  <circle cx="52" cy="97" r="1.4" fill="#e7bcd4"/>
+                </g>
+              </svg>
+            </div>
             <!-- Target layer: kennels, laid out with the SOLUTION values. Non-interactive. -->
             <div class="layer layer-target" id="target-layer" aria-hidden="true"></div>
             <!-- Player layer: dogs, driven live by the dropdowns. -->
