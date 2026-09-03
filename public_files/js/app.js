@@ -102,7 +102,6 @@
     board: document.getElementById("board"),
     target: document.getElementById("target-layer"),
     player: document.getElementById("player-layer"),
-    badge: document.getElementById("level-badge"),
     title: document.getElementById("level-title"),
     instruction: document.getElementById("instruction"),
     controls: document.getElementById("controls"),
@@ -140,26 +139,34 @@
   }
 
   /* --------------------------- Layer styling ---------------------------- */
-  // Apply a full set of flex values to a layer (always all four, so no stale
-  // property leaks between levels).
-  function applyLayerStyles(layerEl, values) {
-    const merged = Object.assign({}, BASE, values);
-    for (const prop in merged) {
-      layerEl.style[PROP_TO_CAMEL[prop]] = merged[prop];
+  // Apply flex values to a layer. Two passes so nothing stale leaks between
+  // levels or from invalid typed input: first reset all four to BASE, then
+  // apply the overrides. An invalid CSS value is ignored by the browser, so
+  // that property simply falls back to its BASE value until a valid one is typed.
+  function applyLayerStyles(layerEl, overrides) {
+    for (const prop in BASE) {
+      layerEl.style[PROP_TO_CAMEL[prop]] = BASE[prop];
+    }
+    for (const prop in overrides) {
+      if (overrides[prop]) layerEl.style[PROP_TO_CAMEL[prop]] = overrides[prop];
     }
   }
 
-  // Read the player's current dropdown selections.
-  function readSelections() {
+  // Read what the player has typed into the text inputs (trimmed, lowercased).
+  // Empty inputs are omitted so the layer falls back to BASE for them.
+  function readInputs() {
     const values = {};
-    const selects = el.controls.querySelectorAll("select");
-    selects.forEach(function (s) { values[s.dataset.property] = s.value; });
+    const inputs = el.controls.querySelectorAll("input");
+    inputs.forEach(function (input) {
+      const v = input.value.trim().toLowerCase();
+      if (v) values[input.dataset.property] = v;
+    });
     return values;
   }
 
-  // Push the player's current selections onto the player (dogs) layer.
+  // Push the player's current typed values onto the player (dogs) layer.
   function updatePlayerLayer() {
-    applyLayerStyles(el.player, readSelections());
+    applyLayerStyles(el.player, readInputs());
   }
 
   /* ---------------------------- Rendering ------------------------------- */
@@ -217,35 +224,42 @@
       const wrap = document.createElement("div");
       wrap.className = "control";
 
+      const inputId = "inp-" + ctrl.property;
+
       const label = document.createElement("label");
       label.className = "control-label";
-      label.textContent = ctrl.label;
-      const selectId = "sel-" + ctrl.property;
-      label.setAttribute("for", selectId);
+      // The label shows the CSS property (e.g. justify-content:) — the player
+      // must figure out and type the value themselves.
+      label.textContent = ctrl.label + ":";
+      label.setAttribute("for", inputId);
 
-      const selWrap = document.createElement("div");
-      selWrap.className = "select-wrap";
+      const field = document.createElement("div");
+      field.className = "field";
 
-      const select = document.createElement("select");
-      select.id = selectId;
-      select.dataset.property = ctrl.property;
-      ctrl.options.forEach(function (opt) {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        select.appendChild(o);
-      });
-      select.value = ctrl.default;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.id = inputId;
+      input.dataset.property = ctrl.property;
+      input.setAttribute("placeholder", "הקלידו ערך…");
+      input.setAttribute("autocomplete", "off");
+      input.setAttribute("autocapitalize", "off");
+      input.setAttribute("autocorrect", "off");
+      input.setAttribute("spellcheck", "false");
+      input.setAttribute("dir", "ltr");
 
-      // Live preview + clear any stale feedback on change.
-      select.addEventListener("change", function () {
+      // Live preview as the player types; clear any stale feedback.
+      input.addEventListener("input", function () {
         updatePlayerLayer();
         clearFeedback();
       });
+      // Enter checks the solution.
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); check(); }
+      });
 
-      selWrap.appendChild(select);
+      field.appendChild(input);
       wrap.appendChild(label);
-      wrap.appendChild(selWrap);
+      wrap.appendChild(field);
       el.controls.appendChild(wrap);
     });
   }
@@ -256,8 +270,6 @@
     solvedThisLevel = completed.has(LEVELS[index].id);
     const level = LEVELS[index];
 
-    el.badge.innerHTML =
-      "שלב " + '<bdi dir="ltr">' + level.id + " / " + LEVELS.length + "</bdi>";
     el.title.textContent = level.title;
     el.instruction.textContent = level.instruction;
 
@@ -307,7 +319,7 @@
   /* ---------------------------- Validation ------------------------------ */
   function check() {
     const level = LEVELS[current];
-    const values = readSelections();
+    const values = readInputs();
     let correct = true;
     for (const prop in level.solution) {
       if (values[prop] !== level.solution[prop]) { correct = false; break; }
@@ -348,16 +360,14 @@
 
   /* ------------------------------ Actions ------------------------------- */
   function resetLevel() {
-    const level = LEVELS[current];
-    const selects = el.controls.querySelectorAll("select");
-    selects.forEach(function (s) {
-      const ctrl = level.controls.find(function (c) { return c.property === s.dataset.property; });
-      if (ctrl) s.value = ctrl.default;
-    });
+    // Clear the typed values so the player starts the level over.
+    const inputs = el.controls.querySelectorAll("input");
+    inputs.forEach(function (input) { input.value = ""; });
     updatePlayerLayer();
     clearFeedback();
     el.board.classList.remove("solved");
     el.nextBtn.classList.add("hidden");
+    if (inputs.length) inputs[0].focus();
   }
 
   function nextLevel() {

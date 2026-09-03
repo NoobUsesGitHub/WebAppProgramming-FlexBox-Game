@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
 
   <link rel="stylesheet" href="style.css">
@@ -63,29 +63,41 @@
       <!-- Right: instructions + controls -->
       <section class="panel" aria-label="לוח בקרה">
         <div class="level-heading">
-          <span class="level-badge" id="level-badge">שלב 1 / 7</span>
           <h2 class="level-title" id="level-title"></h2>
         </div>
 
         <!-- Always-visible instruction for the current level -->
         <p class="instruction" id="instruction"></p>
 
-        <!-- The CSS property dropdowns, built per level -->
+        <!-- The CSS property inputs, built per level. The player types the value. -->
         <div class="controls" id="controls"></div>
 
-        <!-- Right / wrong feedback -->
-        <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
+        <!-- Feedback + actions + hint, pinned to the bottom of the panel -->
+        <div class="panel-bottom">
+          <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
 
-        <!-- Action buttons -->
-        <div class="actions">
-          <button type="button" class="btn btn-primary" id="check-btn">בדוק פתרון</button>
-          <button type="button" class="btn btn-ghost" id="reset-btn">איפוס שלב</button>
-          <button type="button" class="btn btn-ghost" id="hint-btn" aria-expanded="false" aria-controls="hint-box">רמז</button>
-          <button type="button" class="btn btn-primary btn-next hidden" id="next-btn">לשלב הבא ←</button>
+          <!-- Hint box, toggled by the hint button -->
+          <div class="hint-box hidden" id="hint-box" role="note"></div>
+
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="check-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              בדוק פתרון
+            </button>
+            <button type="button" class="btn btn-ghost" id="reset-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              איפוס שלב
+            </button>
+            <button type="button" class="btn btn-ghost" id="hint-btn" aria-expanded="false" aria-controls="hint-box">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
+              רמז
+            </button>
+            <button type="button" class="btn btn-primary btn-next hidden" id="next-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+              לשלב הבא
+            </button>
+          </div>
         </div>
-
-        <!-- Hint box, toggled by the hint button -->
-        <div class="hint-box hidden" id="hint-box" role="note"></div>
       </section>
     </main>
 

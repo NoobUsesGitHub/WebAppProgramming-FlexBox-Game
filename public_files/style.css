@@ -35,7 +35,7 @@
   --shadow-sm: 0 1px 2px rgba(28,25,23,.06);
 
   --board-size: 380px;
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -270,6 +270,7 @@ body {
 .panel {
   flex: 1 1 340px;
   min-width: 280px;
+  min-height: var(--board-size);   /* match the board so buttons sit at the bottom */
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -277,7 +278,15 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 24px;
+  padding: 26px;
+}
+
+/* Feedback + hint + actions, pushed to the bottom of the panel rectangle. */
+.panel-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .level-heading {
@@ -287,22 +296,10 @@ body {
   flex-wrap: wrap;
 }
 
-.level-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: 999px;
-  font-variant-numeric: tabular-nums;
-}
-
 .level-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   letter-spacing: -0.01em;
 }
 
@@ -310,6 +307,11 @@ body {
   margin: 0;
   color: var(--ink-soft);
   font-size: 15.5px;
+  background: #faf6f0;
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 13px 15px;
 }
 
 /* ---------------------------- Controls ---------------------------------- */
@@ -328,46 +330,35 @@ body {
 .control-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ink-soft);
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  direction: ltr;
+  text-align: start;
 }
 
-.select-wrap {
-  position: relative;
-  display: flex;
-}
+.field { display: flex; }
 
-.select-wrap select {
-  appearance: none;
-  -webkit-appearance: none;
+.field input {
   width: 100%;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 14.5px;
+  font-size: 15px;
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
-  padding: 11px 40px 11px 14px;
-  cursor: pointer;
-  transition: border-color .2s ease, box-shadow .2s ease;
+  padding: 12px 14px;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
 
-.select-wrap::after {
-  content: "";
-  position: absolute;
-  inset-inline-end: 14px;
-  top: 50%;
-  width: 9px;
-  height: 9px;
-  border-right: 2px solid var(--muted);
-  border-bottom: 2px solid var(--muted);
-  transform: translateY(-65%) rotate(45deg);
-  pointer-events: none;
+.field input::placeholder {
+  color: var(--muted);
+  font-family: var(--font);
+  opacity: .8;
 }
 
-.select-wrap select:hover { border-color: var(--muted); }
+.field input:hover { border-color: var(--muted); }
 
-.select-wrap select:focus-visible {
+.field input:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
@@ -393,6 +384,9 @@ body {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: inherit;
   font-size: 14.5px;
   font-weight: 600;
@@ -402,6 +396,8 @@ body {
   cursor: pointer;
   transition: background .2s ease, border-color .2s ease, transform .12s ease, box-shadow .2s ease;
 }
+
+.btn svg { flex: 0 0 auto; }
 
 .btn:active { transform: translateY(1px); }
 
@@ -546,7 +542,7 @@ body {
 @media (max-width: 767px) {
   .game { flex-direction: column; align-items: center; }
   .board-side { width: 100%; }
-  .panel { width: 100%; }
+  .panel { width: 100%; min-height: auto; }   /* no forced height when stacked */
 
   .app-header { justify-content: center; text-align: center; }
   .progress-readout { align-items: center; text-align: center; }
