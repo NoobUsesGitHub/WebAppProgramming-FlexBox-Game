@@ -1,0 +1,25 @@
+- plan the theme and subnject (/gameplay loop)
+
+- skeleton UI
+    - html
+
+- CSS
+
+- webapp JS
+
+
+- server JS
+
+
+
+- make the levels
+
+
+- make solution checker:
+    - front api calls POST to server with user input + Level ID (JSON FILE)
+    - server checks if the user input is correct (check that the solution exists in a solution array)
+    - if it exists-> true , else, return false
+    - front responds accordingly
+
+
+- integration hell
