@@ -450,6 +450,10 @@ body {
   color: var(--muted);
   font-family: var(--font);
   opacity: .8;
+  /* Input stays dir=ltr for typed CSS values, but the Hebrew placeholder
+     reads right-to-left, aligned from the right edge. */
+  direction: rtl;
+  text-align: right;
 }
 
 .field input:hover { border-color: var(--muted); }
