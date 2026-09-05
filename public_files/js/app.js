@@ -297,27 +297,62 @@
     }
   }
 
+  // Render the controls as a mini CSS "file": the player fills in the values
+  // inside a real-looking rule (.puppy-yard { display: flex; ... }).
   function renderControls(level) {
     el.controls.innerHTML = "";
-    level.controls.forEach(function (ctrl) {
-      const wrap = document.createElement("div");
-      wrap.className = "control";
 
-      const inputId = "inp-" + ctrl.property;
+    const editor = document.createElement("div");
+    editor.className = "code-editor";
+    editor.setAttribute("role", "group");
+    editor.setAttribute("aria-label", "עורך CSS");
+
+    // Title bar (window dots + filename) to sell the "css file" feel.
+    const bar = document.createElement("div");
+    bar.className = "code-titlebar";
+    bar.innerHTML =
+      '<span class="code-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
+      '<span class="code-filename">puppy-park.css</span>';
+    editor.appendChild(bar);
+
+    const body = document.createElement("div");
+    body.className = "code-body";
+
+    function addLine(html, indent) {
+      const l = document.createElement("div");
+      l.className = "code-line" + (indent ? " code-indent" : "");
+      l.innerHTML = html;
+      body.appendChild(l);
+      return l;
+    }
+
+    // Selector + the fixed flex declaration.
+    addLine('<span class="tok-sel">.puppy-yard</span> <span class="tok-punc">{</span>');
+    addLine(
+      '<span class="tok-prop">display</span><span class="tok-punc">:</span> ' +
+      '<span class="tok-val">flex</span><span class="tok-punc">;</span>',
+      true
+    );
+
+    // One editable declaration per control.
+    level.controls.forEach(function (ctrl) {
+      const propId = "inp-" + ctrl.property;
+      const l = document.createElement("div");
+      l.className = "code-line code-indent";
 
       const label = document.createElement("label");
-      label.className = "control-label";
-      // The label shows the CSS property (e.g. justify-content:) — the player
-      // must figure out and type the value themselves.
-      label.textContent = ctrl.label + ":";
-      label.setAttribute("for", inputId);
+      label.className = "tok-prop";
+      label.setAttribute("for", propId);
+      label.textContent = ctrl.label;
 
-      const field = document.createElement("div");
-      field.className = "field";
+      const colon = document.createElement("span");
+      colon.className = "tok-punc";
+      colon.textContent = ": ";
 
       const input = document.createElement("input");
       input.type = "text";
-      input.id = inputId;
+      input.id = propId;
+      input.className = "code-input";
       input.dataset.property = ctrl.property;
       input.setAttribute("placeholder", "הקלידו ערך");
       input.setAttribute("autocomplete", "off");
@@ -325,22 +360,32 @@
       input.setAttribute("autocorrect", "off");
       input.setAttribute("spellcheck", "false");
       input.setAttribute("dir", "ltr");
+      input.setAttribute("aria-label", ctrl.label);
 
-      // Live preview as the player types; clear any stale feedback.
       input.addEventListener("input", function () {
         updatePlayerLayer(true);
         clearFeedback();
       });
-      // Enter checks the solution.
       input.addEventListener("keydown", function (e) {
         if (e.key === "Enter") { e.preventDefault(); check(); }
       });
 
-      field.appendChild(input);
-      wrap.appendChild(label);
-      wrap.appendChild(field);
-      el.controls.appendChild(wrap);
+      const semi = document.createElement("span");
+      semi.className = "tok-punc";
+      semi.textContent = ";";
+
+      l.appendChild(label);
+      l.appendChild(colon);
+      l.appendChild(input);
+      l.appendChild(semi);
+      body.appendChild(l);
     });
+
+    // Closing brace.
+    addLine('<span class="tok-punc">}</span>');
+
+    editor.appendChild(body);
+    el.controls.appendChild(editor);
   }
 
   /* --------------------------- Load a level ----------------------------- */

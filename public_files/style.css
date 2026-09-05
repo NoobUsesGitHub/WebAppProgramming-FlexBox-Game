@@ -417,51 +417,86 @@ body {
   gap: 14px;
 }
 
-.control {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.control-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
+/* CSS-editor styled controls — the player fills values like editing a .css file */
+.code-editor {
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  direction: ltr;
-  text-align: start;
-}
-
-.field { display: flex; }
-
-.field input {
-  width: 100%;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 15px;
-  color: var(--ink);
-  background: var(--surface);
+  background: #fbfbfa;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  overflow: hidden;
+}
+
+.code-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #f1f0ec;
+  border-bottom: 1px solid var(--line);
+}
+.code-dots { display: inline-flex; gap: 5px; }
+.code-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
+.code-filename { font-size: 12px; color: var(--muted); direction: ltr; }
+
+.code-body {
+  padding: 12px 14px 14px;
+  direction: ltr;          /* code reads left-to-right */
+  text-align: left;
+  font-size: 14px;
+  line-height: 2.05;
+  counter-reset: ln;
+}
+
+.code-line {
+  position: relative;
+  padding-left: 30px;      /* room for the line-number gutter */
+  color: var(--ink);
+}
+.code-line::before {
+  counter-increment: ln;
+  content: counter(ln);
+  position: absolute;
+  left: 0;
+  width: 20px;
+  text-align: right;
+  color: var(--line-strong);
+  font-size: 12px;
+  user-select: none;
+}
+.code-indent { padding-left: 52px; }   /* nested declarations */
+
+/* Light syntax coloring */
+.tok-sel  { color: #7c5cf0; }
+.tok-prop { color: var(--accent); font-weight: 600; }
+.tok-val  { color: #0f9d63; }
+.tok-punc { color: var(--muted); }
+label.tok-prop { cursor: pointer; }
+
+.code-input {
+  font: inherit;
+  color: #0f9d63;
+  background: rgba(42, 167, 224, .07);
+  border: 1px solid var(--accent-line);
+  border-radius: 5px;
+  padding: 1px 8px;
+  min-width: 132px;
+  outline: none;
+  direction: ltr;
+  text-align: left;
   transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
-
-.field input::placeholder {
-  color: var(--muted);
-  font-family: var(--font);
-  opacity: .8;
-  /* Input stays dir=ltr for typed CSS values, but the Hebrew placeholder
-     reads right-to-left, aligned from the right edge. */
-  direction: rtl;
-  text-align: right;
-}
-
-.field input:hover { border-color: var(--muted); }
-
-.field input:focus-visible {
-  outline: none;
+.code-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+  background: var(--surface);
+}
+.code-input::placeholder {
+  color: var(--muted);
+  opacity: .7;
+  /* input is dir=ltr for typed values; the Hebrew hint reads right-to-left */
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font);
 }
 
 /* ---------------------------- Feedback ---------------------------------- */
