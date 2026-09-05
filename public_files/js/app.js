@@ -174,7 +174,7 @@
     title: document.getElementById("level-title"),
     instruction: document.getElementById("instruction"),
     controls: document.getElementById("controls"),
-    feedback: document.getElementById("feedback"),
+    toast: document.getElementById("toast"),
     checkBtn: document.getElementById("check-btn"),
     resetBtn: document.getElementById("reset-btn"),
     hintBtn: document.getElementById("hint-btn"),
@@ -507,18 +507,29 @@
     saveProgress();
   }
 
-  /* ---------------------------- Feedback -------------------------------- */
+  /* ------------------------- Feedback (popup toast) --------------------- */
+  let toastTimer = null;
+
   function clearFeedback() {
-    el.feedback.hidden = true;
-    el.feedback.textContent = "";
-    el.feedback.classList.remove("is-ok", "is-err");
+    window.clearTimeout(toastTimer);
+    el.toast.classList.remove("show");
+    window.setTimeout(function () {
+      if (!el.toast.classList.contains("show")) el.toast.hidden = true;
+    }, 260);
   }
 
-  function showFeedback(message, kind) {
-    el.feedback.textContent = message;
-    el.feedback.classList.remove("is-ok", "is-err");
-    el.feedback.classList.add(kind === "ok" ? "is-ok" : "is-err");
-    el.feedback.hidden = false;
+  // Show the success/error message as a floating popup. `isHtml` allows the
+  // solved message to include the animated star row.
+  function showFeedback(content, kind, isHtml) {
+    if (isHtml) el.toast.innerHTML = content;
+    else el.toast.textContent = content;
+    el.toast.classList.remove("is-ok", "is-err");
+    el.toast.classList.add(kind === "ok" ? "is-ok" : "is-err");
+    el.toast.hidden = false;
+    void el.toast.offsetWidth;            // reflow so the entrance transition runs
+    el.toast.classList.add("show");
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(clearFeedback, kind === "ok" ? 2800 : 2000);
   }
 
   const WRONG_MESSAGES = [
@@ -574,14 +585,13 @@
   function onSolved(level) {
     const stars = computeStars();
 
-    // Star row + message (aria-live announces the sr-only summary).
-    el.feedback.classList.remove("is-err");
-    el.feedback.classList.add("is-ok");
-    el.feedback.innerHTML =
+    // Popup with the star row + message (aria-live announces the sr-only summary).
+    showFeedback(
       '<span class="stars" aria-hidden="true">' + starRow(stars) + "</span>" +
       '<span class="feedback-msg">כל הכבוד! הכלבים הגיעו הביתה.</span>' +
-      '<span class="sr-only">קיבלת ' + stars + " מתוך 3 כוכבים</span>";
-    el.feedback.hidden = false;
+      '<span class="sr-only">קיבלת ' + stars + " מתוך 3 כוכבים</span>",
+      "ok", true
+    );
 
     el.board.classList.add("solved");
     launchConfetti();

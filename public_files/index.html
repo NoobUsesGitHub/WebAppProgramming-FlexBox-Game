@@ -96,10 +96,8 @@
         <!-- The CSS property inputs, built per level. The player types the value. -->
         <div class="controls" id="controls"></div>
 
-        <!-- Feedback + actions + hint, pinned to the bottom of the panel -->
+        <!-- Actions + hint, pinned to the bottom of the panel -->
         <div class="panel-bottom">
-          <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
-
           <!-- Hint box, toggled by the hint button -->
           <div class="hint-box hidden" id="hint-box" role="note"></div>
 
@@ -129,6 +127,9 @@
       <p>נבנה בעזרת HTML, CSS ו-JavaScript טהורים · ללא ספריות חיצוניות · Flexbox בלבד</p>
     </footer>
   </div>
+
+  <!-- ============ Success / error popup toast ============ -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <!-- ============ Win screen (all levels done) ============ -->
   <div class="win-overlay hidden" id="win-overlay" role="dialog" aria-modal="true" aria-labelledby="win-title">
