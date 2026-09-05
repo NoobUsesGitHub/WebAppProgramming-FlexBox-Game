@@ -101,12 +101,69 @@
   };
 
   const STORAGE_KEY = "puppypark.progress";
+  const MUTE_KEY = "puppypark.muted";
+
+  /* ------------------------------ Audio --------------------------------- */
+  // Procedural sound effects via the native Web Audio API — no files, no
+  // library. The context is created lazily and resumed on a user gesture.
+  const audio = (function () {
+    let ctx = null;
+    let muted = false;
+    try { muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
+
+    function ready() {
+      if (muted) return null;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { ctx = new AC(); } catch (e) { ctx = null; return null; }
+      }
+      if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
+      return ctx;
+    }
+
+    // One short enveloped tone.
+    function tone(freq, startAt, dur, type, peak) {
+      const c = ready();
+      if (!c) return;
+      const t0 = c.currentTime + (startAt || 0);
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = type || "sine";
+      osc.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(peak || 0.12, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g); g.connect(c.destination);
+      osc.start(t0); osc.stop(t0 + dur + 0.03);
+    }
+
+    return {
+      isMuted: function () { return muted; },
+      unlock: function () { ready(); },
+      toggle: function () {
+        muted = !muted;
+        try { localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) {}
+        if (!muted) { ready(); tone(320, 0, 0.06, "triangle", 0.06); }
+        return muted;
+      },
+      tick:    function () { tone(200, 0, 0.04, "square", 0.03); },
+      click:   function () { tone(320, 0, 0.06, "triangle", 0.06); },
+      error:   function () { tone(190, 0, 0.12, "sawtooth", 0.06); tone(140, 0.09, 0.16, "sawtooth", 0.06); },
+      success: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.09, 0.24, "triangle", 0.08); }); },
+      bark:    function () { tone(430, 0.02, 0.09, "square", 0.09); tone(300, 0.11, 0.12, "square", 0.08); },
+      chime:   function () { tone(784, 0, 0.16, "sine", 0.07); tone(1047, 0.08, 0.2, "sine", 0.06); },
+    };
+  })();
 
   /* ------------------------------ State --------------------------------- */
   const LEVELS = window.LEVELS || [];
   let current = 0;                 // active level index
   let completed = new Set();       // completed level ids
   let solvedThisLevel = false;     // guards double-completing
+  let hintUsed = false;            // did the player open the hint this attempt?
+  let wrongAttempts = 0;           // wrong checks on the current attempt
+  let starsById = {};              // best stars earned per level id (1–3)
 
   /* ---------------------------- DOM refs -------------------------------- */
   const el = {
@@ -126,14 +183,39 @@
     progressCount: document.getElementById("progress-count"),
     winOverlay: document.getElementById("win-overlay"),
     restartBtn: document.getElementById("restart-btn"),
+    muteBtn: document.getElementById("mute-btn"),
   };
+
+  /* ------------------------------ Icons --------------------------------- */
+  var SPEAKER_ON =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
+  var SPEAKER_OFF =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
+
+  function starSvg(on) {
+    return (
+      '<svg class="star' + (on ? " is-on" : "") + '" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>'
+    );
+  }
+  function starRow(n) {
+    var s = "";
+    for (var i = 0; i < 3; i++) {
+      s += '<span class="star-wrap" style="animation-delay:' + (i * 0.1) + 's">' + starSvg(i < n) + "</span>";
+    }
+    return s;
+  }
 
   /* --------------------------- Persistence ------------------------------ */
   function saveProgress() {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ current: current, completed: Array.from(completed) })
+        JSON.stringify({ current: current, completed: Array.from(completed), stars: starsById })
       );
     } catch (e) { /* storage may be unavailable; game still works in-session */ }
   }
@@ -144,6 +226,7 @@
       if (!raw) return;
       const data = JSON.parse(raw);
       if (Array.isArray(data.completed)) completed = new Set(data.completed);
+      if (data.stars && typeof data.stars === "object") starsById = data.stars;
       if (typeof data.current === "number" && data.current >= 0 && data.current < LEVELS.length) {
         current = data.current;
       }
@@ -254,8 +337,9 @@
       node.disabled = locked;
       node.innerHTML = done ? CHECK_SVG : locked ? LOCK_SVG : String(lvl.id);
       const state = done ? " — הושלם" : active ? " — נוכחי" : " — נעול";
+      const starNote = starsById[lvl.id] ? " · " + starsById[lvl.id] + "/3 ★" : "";
       node.setAttribute("aria-label", "שלב " + lvl.id + state);
-      node.title = "שלב " + lvl.id + " · " + lvl.title + state;   // hover tooltip
+      node.title = "שלב " + lvl.id + " · " + lvl.title + state + starNote;   // hover tooltip
       if (active) node.setAttribute("aria-current", "step");
 
       node.addEventListener("click", function () {
@@ -363,6 +447,7 @@
       input.setAttribute("aria-label", ctrl.label);
 
       input.addEventListener("input", function () {
+        audio.tick();
         updatePlayerLayer(true);
         clearFeedback();
       });
@@ -392,6 +477,8 @@
   function loadLevel(index) {
     current = index;
     solvedThisLevel = completed.has(LEVELS[index].id);
+    hintUsed = false;
+    wrongAttempts = 0;
     const level = LEVELS[index];
 
     el.title.textContent = level.title;
@@ -452,12 +539,23 @@
     if (correct) {
       onSolved(level);
     } else {
+      wrongAttempts++;
+      audio.error();
       const msg = WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)];
       showFeedback(msg, "err");
       el.board.classList.remove("shake");
       void el.board.offsetWidth;
       el.board.classList.add("shake");
     }
+  }
+
+  // 3 stars = solved first try with no hint; each of (hint used) / (any wrong
+  // attempt) costs a star, floored at 1.
+  function computeStars() {
+    let s = 3;
+    if (hintUsed) s -= 1;
+    if (wrongAttempts > 0) s -= 1;
+    return Math.max(1, s);
   }
 
   // Little "Woof!" speech bubbles above the dogs when the level is solved.
@@ -474,15 +572,35 @@
   }
 
   function onSolved(level) {
-    showFeedback("כל הכבוד! הכלבים הגיעו הביתה.", "ok");
+    const stars = computeStars();
+
+    // Star row + message (aria-live announces the sr-only summary).
+    el.feedback.classList.remove("is-err");
+    el.feedback.classList.add("is-ok");
+    el.feedback.innerHTML =
+      '<span class="stars" aria-hidden="true">' + starRow(stars) + "</span>" +
+      '<span class="feedback-msg">כל הכבוד! הכלבים הגיעו הביתה.</span>' +
+      '<span class="sr-only">קיבלת ' + stars + " מתוך 3 כוכבים</span>";
+    el.feedback.hidden = false;
+
     el.board.classList.add("solved");
     launchConfetti();
     popWoofs();
+    audio.success();
+    window.setTimeout(function () { audio.bark(); }, 230);
+
+    // Record best stars for this level.
+    if (!starsById[level.id] || stars > starsById[level.id]) {
+      starsById[level.id] = stars;
+    }
 
     if (!completed.has(level.id)) {
       completed.add(level.id);
       renderProgress();
       renderStrip();
+      saveProgress();
+    } else {
+      renderStrip();  // refresh tooltip stars on replay
       saveProgress();
     }
     solvedThisLevel = true;
@@ -498,9 +616,12 @@
 
   /* ------------------------------ Actions ------------------------------- */
   function resetLevel() {
-    // Clear the typed values so the player starts the level over.
+    audio.click();
+    // Clear the typed values so the player starts the level over (fresh attempt).
     const inputs = el.controls.querySelectorAll("input");
     inputs.forEach(function (input) { input.value = ""; });
+    hintUsed = false;
+    wrongAttempts = 0;
     updatePlayerLayer(true);
     clearFeedback();
     el.board.classList.remove("solved");
@@ -509,15 +630,17 @@
   }
 
   function nextLevel() {
-    if (current < LEVELS.length - 1) loadLevel(current + 1);
+    if (current < LEVELS.length - 1) { audio.chime(); loadLevel(current + 1); }
   }
 
   function toggleHint() {
+    audio.click();
     if (el.hintBox.classList.contains("hidden")) showHint();
     else hideHint();
   }
 
   function showHint() {
+    hintUsed = true;
     el.hintBox.textContent = LEVELS[current].hint;
     el.hintBox.classList.remove("hidden");
     el.hintBtn.setAttribute("aria-expanded", "true");
@@ -535,11 +658,25 @@
   }
 
   function restart() {
+    audio.click();
     completed = new Set();
     current = 0;
     saveProgress();
     el.winOverlay.classList.add("hidden");
     loadLevel(0);
+  }
+
+  /* ------------------------------ Mute ---------------------------------- */
+  function renderMute() {
+    const muted = audio.isMuted();
+    el.muteBtn.innerHTML = muted ? SPEAKER_OFF : SPEAKER_ON;
+    el.muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+    el.muteBtn.classList.toggle("is-muted", muted);
+  }
+
+  function toggleMute() {
+    audio.toggle();
+    renderMute();
   }
 
   /* ---------------------------- Confetti -------------------------------- */
@@ -570,6 +707,17 @@
     el.hintBtn.addEventListener("click", toggleHint);
     el.nextBtn.addEventListener("click", nextLevel);
     el.restartBtn.addEventListener("click", restart);
+    el.muteBtn.addEventListener("click", toggleMute);
+    renderMute();
+
+    // Unlock the AudioContext on the first user gesture (browser autoplay policy).
+    function unlockOnce() {
+      audio.unlock();
+      document.removeEventListener("pointerdown", unlockOnce);
+      document.removeEventListener("keydown", unlockOnce);
+    }
+    document.addEventListener("pointerdown", unlockOnce);
+    document.addEventListener("keydown", unlockOnce);
 
     loadLevel(current);
   }
