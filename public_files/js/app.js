@@ -319,7 +319,7 @@
       input.type = "text";
       input.id = inputId;
       input.dataset.property = ctrl.property;
-      input.setAttribute("placeholder", "הקלידו ערך…");
+      input.setAttribute("placeholder", "הקלידו ערך");
       input.setAttribute("autocomplete", "off");
       input.setAttribute("autocapitalize", "off");
       input.setAttribute("autocorrect", "off");
