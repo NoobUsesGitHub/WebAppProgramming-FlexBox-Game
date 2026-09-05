@@ -529,39 +529,46 @@ label.tok-prop { cursor: pointer; }
 }
 
 /* ---------------------------- Feedback ---------------------------------- */
-/* Success / error popup toast (floats over the game, not inline) */
+/* Success / error popup — a centered white card floating over the game */
 .toast {
   position: fixed;
-  top: 20px;
+  top: 50%;
   left: 50%;
   z-index: 70;
-  max-width: min(92vw, 460px);
+  width: min(88vw, 320px);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 22px;
+  gap: 12px;
+  padding: 28px 28px 26px;
   border-radius: var(--radius);
-  font-size: 15.5px;
-  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px rgba(28, 25, 23, .28);
   text-align: center;
-  border: 1px solid transparent;
-  box-shadow: 0 14px 36px rgba(28, 25, 23, .18);
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-50%) translateY(-16px) scale(.96);
-  transition: opacity .25s ease, transform .28s cubic-bezier(.2, 1.3, .5, 1);
+  transform: translate(-50%, -50%) scale(.9);
+  transition: opacity .22s ease, transform .3s cubic-bezier(.2, 1.35, .5, 1);
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-.toast.is-ok  { color: var(--ok);  background: #f1fdf5; border-color: var(--ok-line); }
-.toast.is-err { color: var(--err); background: #fef4f3; border-color: var(--err-line); }
+.toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
-.stars {
+.toast-icon {
   display: inline-flex;
-  gap: 4px;
-  vertical-align: middle;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
 }
-.feedback-msg { vertical-align: middle; }
+.toast-icon svg { width: 30px; height: 30px; }
+.toast-icon.ok  { background: var(--ok-soft);  color: var(--ok); }
+.toast-icon.err { background: var(--err-soft); color: var(--err); }
+.toast.show .toast-icon { animation: pop-in .4s ease-out; }
+
+.toast-msg { color: var(--ink); font-size: 16px; font-weight: 600; }
+
+.stars { display: inline-flex; gap: 5px; }
 .star-wrap { display: inline-flex; animation: star-pop .45s cubic-bezier(.2, 1.4, .5, 1) both; }
 .star { width: 20px; height: 20px; }
 .star path { fill: var(--line-strong); }

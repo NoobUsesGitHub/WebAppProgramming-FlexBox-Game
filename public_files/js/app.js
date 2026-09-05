@@ -315,6 +315,10 @@
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 
+  var X_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
   // Progress bar of level nodes. A level is playable only if it's already
   // completed or is the current level; every unsolved future level is disabled.
   function renderStrip() {
@@ -513,23 +517,30 @@
   function clearFeedback() {
     window.clearTimeout(toastTimer);
     el.toast.classList.remove("show");
-    window.setTimeout(function () {
-      if (!el.toast.classList.contains("show")) el.toast.hidden = true;
-    }, 260);
   }
 
-  // Show the success/error message as a floating popup. `isHtml` allows the
-  // solved message to include the animated star row.
+  // Show the success/error message as a centered popup. The toast element is
+  // always in the DOM (invisible via opacity), so toggling the "show" class
+  // animates it in/out reliably. `isHtml` carries the icon + star row.
   function showFeedback(content, kind, isHtml) {
     if (isHtml) el.toast.innerHTML = content;
     else el.toast.textContent = content;
     el.toast.classList.remove("is-ok", "is-err");
     el.toast.classList.add(kind === "ok" ? "is-ok" : "is-err");
-    el.toast.hidden = false;
-    void el.toast.offsetWidth;            // reflow so the entrance transition runs
     el.toast.classList.add("show");
     window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(clearFeedback, kind === "ok" ? 2800 : 2000);
+  }
+
+  // Build the centered white popup: icon (✓ / ✕), stars (success only), message.
+  function showResult(kind, msg, stars) {
+    const icon =
+      '<span class="toast-icon ' + kind + '">' + (kind === "ok" ? CHECK_SVG : X_SVG) + "</span>";
+    const starsHtml =
+      kind === "ok" ? '<span class="stars" aria-hidden="true">' + starRow(stars) + "</span>" : "";
+    const sr =
+      kind === "ok" ? '<span class="sr-only">קיבלת ' + stars + " מתוך 3 כוכבים</span>" : "";
+    showFeedback(icon + starsHtml + '<span class="toast-msg">' + msg + "</span>" + sr, kind, true);
   }
 
   const WRONG_MESSAGES = [
@@ -553,7 +564,7 @@
       wrongAttempts++;
       audio.error();
       const msg = WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)];
-      showFeedback(msg, "err");
+      showResult("err", msg);
       el.board.classList.remove("shake");
       void el.board.offsetWidth;
       el.board.classList.add("shake");
@@ -585,13 +596,8 @@
   function onSolved(level) {
     const stars = computeStars();
 
-    // Popup with the star row + message (aria-live announces the sr-only summary).
-    showFeedback(
-      '<span class="stars" aria-hidden="true">' + starRow(stars) + "</span>" +
-      '<span class="feedback-msg">כל הכבוד! הכלבים הגיעו הביתה.</span>' +
-      '<span class="sr-only">קיבלת ' + stars + " מתוך 3 כוכבים</span>",
-      "ok", true
-    );
+    // Centered popup with the ✓ icon + star row + message.
+    showResult("ok", "כל הכבוד! הכלבים הגיעו הביתה.", stars);
 
     el.board.classList.add("solved");
     launchConfetti();
