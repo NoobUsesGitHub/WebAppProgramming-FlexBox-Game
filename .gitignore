@@ -1,5 +1,10 @@
 node_modules/
 
+# OS / editor / tooling
+.DS_Store
+.claude/
+.netlify/
+
 # npm logs
 npm-debug.log*
 yarn-debug.log*
