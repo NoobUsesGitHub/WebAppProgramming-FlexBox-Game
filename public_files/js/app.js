@@ -1,7 +1,7 @@
 /*
  * Puppy Park — Controller & Engine
  * --------------------------------
- * Reads the LEVELS data layer (levels.js) and runs the whole game:
+ * Reads the LEVELS data layer (fetched from /getLevels) and runs the whole game:
  *   - builds the DOM for each level (instruction, dropdowns, dogs, kennels)
  *   - live preview: dropdown changes update the player layer's inline CSS
  *   - validation: compares the player's values to the level's solution
@@ -11,7 +11,7 @@
  * No frameworks, no libraries, Flexbox only.
  */
 
-(function () {
+(() => {
   "use strict";
 
   /* ------------------------- SVG assets (inline) ------------------------- */
@@ -22,7 +22,7 @@
 
   // Front-facing puppy (looking at the player). Paws, ears, tail and body carry
   // classes so CSS can animate a little waddle while the dog is moving.
-  function svgDog(color) {
+  const svgDog = (color) => {
     // color = { main, dark }
     return (
       '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
@@ -56,9 +56,9 @@
           'stroke="' + FACE + '" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
       "</svg>"
     );
-  }
+  };
 
-  function svgKennel() {
+  const svgKennel = () => {
     return (
       '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
         // body
@@ -71,7 +71,7 @@
         '<path d="M24 54 V40 a8 9 0 0 1 16 0 V54 Z" fill="#8a827a"/>' +
       "</svg>"
     );
-  }
+  };
 
   // >= 6 distinct dog colors (level 7 needs 6).
   const PALETTE = [
@@ -106,12 +106,12 @@
   /* ------------------------------ Audio --------------------------------- */
   // Procedural sound effects via the native Web Audio API — no files, no
   // library. The context is created lazily and resumed on a user gesture.
-  const audio = (function () {
+  const audio = (() => {
     let ctx = null;
     let muted = false;
     try { muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
 
-    function ready() {
+    const ready = () => {
       if (muted) return null;
       if (!ctx) {
         const AC = window.AudioContext || window.webkitAudioContext;
@@ -120,10 +120,10 @@
       }
       if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
       return ctx;
-    }
+    };
 
     // One short enveloped tone.
-    function tone(freq, startAt, dur, type, peak) {
+    const tone = (freq, startAt, dur, type, peak) => {
       const c = ready();
       if (!c) return;
       const t0 = c.currentTime + (startAt || 0);
@@ -136,28 +136,28 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
       osc.connect(g); g.connect(c.destination);
       osc.start(t0); osc.stop(t0 + dur + 0.03);
-    }
+    };
 
     return {
-      isMuted: function () { return muted; },
-      unlock: function () { ready(); },
-      toggle: function () {
+      isMuted: () => muted,
+      unlock: () => { ready(); },
+      toggle: () => {
         muted = !muted;
         try { localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) {}
         if (!muted) { ready(); tone(320, 0, 0.06, "triangle", 0.06); }
         return muted;
       },
-      tick:    function () { tone(200, 0, 0.04, "square", 0.03); },
-      click:   function () { tone(320, 0, 0.06, "triangle", 0.06); },
-      error:   function () { tone(190, 0, 0.12, "sawtooth", 0.06); tone(140, 0.09, 0.16, "sawtooth", 0.06); },
-      success: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.09, 0.24, "triangle", 0.08); }); },
-      bark:    function () { tone(430, 0.02, 0.09, "square", 0.09); tone(300, 0.11, 0.12, "square", 0.08); },
-      chime:   function () { tone(784, 0, 0.16, "sine", 0.07); tone(1047, 0.08, 0.2, "sine", 0.06); },
+      tick:    () => tone(200, 0, 0.04, "square", 0.03),
+      click:   () => tone(320, 0, 0.06, "triangle", 0.06),
+      error:   () => { tone(190, 0, 0.12, "sawtooth", 0.06); tone(140, 0.09, 0.16, "sawtooth", 0.06); },
+      success: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.24, "triangle", 0.08)); },
+      bark:    () => { tone(430, 0.02, 0.09, "square", 0.09); tone(300, 0.11, 0.12, "square", 0.08); },
+      chime:   () => { tone(784, 0, 0.16, "sine", 0.07); tone(1047, 0.08, 0.2, "sine", 0.06); },
     };
   })();
 
   /* ------------------------------ State --------------------------------- */
-  const LEVELS = window.LEVELS || [];
+  let LEVELS = [];                 // filled from /getLevels on init: [{id, title}, ...]
   let current = 0;                 // active level index
   let completed = new Set();       // completed level ids
   let solvedThisLevel = false;     // guards double-completing
@@ -196,31 +196,31 @@
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
 
-  function starSvg(on) {
+  const starSvg = (on) => {
     return (
       '<svg class="star' + (on ? " is-on" : "") + '" viewBox="0 0 24 24" aria-hidden="true">' +
       '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>'
     );
-  }
-  function starRow(n) {
+  };
+  const starRow = (n) => {
     var s = "";
     for (var i = 0; i < 3; i++) {
       s += '<span class="star-wrap" style="animation-delay:' + (i * 0.1) + 's">' + starSvg(i < n) + "</span>";
     }
     return s;
-  }
+  };
 
   /* --------------------------- Persistence ------------------------------ */
-  function saveProgress() {
+  const saveProgress = () => {
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ current: current, completed: Array.from(completed), stars: starsById })
       );
     } catch (e) { /* storage may be unavailable; game still works in-session */ }
-  }
+  };
 
-  function loadProgress() {
+  const loadProgress = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
@@ -231,33 +231,34 @@
         current = data.current;
       }
     } catch (e) { /* ignore corrupt storage */ }
-  }
+  };
 
   /* --------------------------- Layer styling ---------------------------- */
   // Apply flex values to a layer. Two passes so nothing stale leaks between
   // levels or from invalid typed input: first reset all four to BASE, then
   // apply the overrides. An invalid CSS value is ignored by the browser, so
   // that property simply falls back to its BASE value until a valid one is typed.
-  function applyLayerStyles(layerEl, overrides) {
+  const applyLayerStyles = (layerEl, overrides) => {
     for (const prop in BASE) {
       layerEl.style[PROP_TO_CAMEL[prop]] = BASE[prop];
     }
     for (const prop in overrides) {
-      if (overrides[prop]) layerEl.style[PROP_TO_CAMEL[prop]] = overrides[prop];
+      const value = Array.isArray(overrides[prop]) ? overrides[prop][0] : overrides[prop];
+      if (value) layerEl.style[PROP_TO_CAMEL[prop]] = value;
     }
-  }
+  };
 
   // Read what the player has typed into the text inputs (trimmed, lowercased).
   // Empty inputs are omitted so the layer falls back to BASE for them.
-  function readInputs() {
+  const readInputs = () => {
     const values = {};
     const inputs = el.controls.querySelectorAll("input");
-    inputs.forEach(function (input) {
+    inputs.forEach((input) => {
       const v = input.value.trim().toLowerCase();
       if (v) values[input.dataset.property] = v;
     });
     return values;
-  }
+  };
 
   var REDUCED = false;
   try {
@@ -267,18 +268,18 @@
   // Push the player's typed values onto the dogs layer. When `animate` is true,
   // the dogs walk to their new spots using a FLIP transition (measure First,
   // apply Last, invert, then play), with a walk-cycle class while in motion.
-  function updatePlayerLayer(animate) {
+  const updatePlayerLayer = (animate) => {
     const dogs = Array.prototype.slice.call(el.player.children);
     if (animate && REDUCED) animate = false;
 
     const firsts = animate
-      ? dogs.map(function (d) { return d.getBoundingClientRect(); })
+      ? dogs.map((d) => d.getBoundingClientRect())
       : null;
 
     applyLayerStyles(el.player, readInputs());
     if (!animate) return;
 
-    dogs.forEach(function (d, i) {
+    dogs.forEach((d, i) => {
       const last = d.getBoundingClientRect();
       const dx = firsts[i].left - last.left;
       const dy = firsts[i].top - last.top;
@@ -289,21 +290,21 @@
       d.style.transform = "translate(" + dx + "px, " + dy + "px)";
 
       // Next frame: release to the real position so it transitions (walks) there.
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           d.style.transition = "transform .55s cubic-bezier(.34, 1.12, .64, 1)";
           d.style.transform = "";
         });
       });
 
       window.clearTimeout(d._walkTimer);
-      d._walkTimer = window.setTimeout(function () {
+      d._walkTimer = window.setTimeout(() => {
         d.classList.remove("walking");
         d.style.transition = "";
         d.style.transform = "";
       }, 600);
     });
-  }
+  };
 
   /* ---------------------------- Rendering ------------------------------- */
   var CHECK_SVG =
@@ -321,12 +322,12 @@
 
   // Progress bar of level nodes. A level is playable only if it's already
   // completed or is the current level; every unsolved future level is disabled.
-  function renderStrip() {
+  const renderStrip = () => {
     el.strip.innerHTML = "";
     const bar = document.createElement("div");
     bar.className = "progress-bar";
 
-    LEVELS.forEach(function (lvl, i) {
+    LEVELS.forEach((lvl, i) => {
       const done = completed.has(lvl.id);
       const active = i === current;
       const locked = !done && !active;
@@ -339,14 +340,20 @@
       if (locked) node.classList.add("is-locked");
 
       node.disabled = locked;
-      node.innerHTML = done ? CHECK_SVG : locked ? LOCK_SVG : String(lvl.id);
+      node.innerHTML = locked ? LOCK_SVG : String(lvl.id);
+      if (done) {
+        const badge = document.createElement("span");
+        badge.className = "pnode-badge";
+        badge.innerHTML = CHECK_SVG;
+        node.appendChild(badge);
+      }
       const state = done ? " — הושלם" : active ? " — נוכחי" : " — נעול";
       const starNote = starsById[lvl.id] ? " · " + starsById[lvl.id] + "/3 ★" : "";
       node.setAttribute("aria-label", "שלב " + lvl.id + state);
       node.title = "שלב " + lvl.id + " · " + lvl.title + state + starNote;   // hover tooltip
       if (active) node.setAttribute("aria-current", "step");
 
-      node.addEventListener("click", function () {
+      node.addEventListener("click", () => {
         if (!locked && i !== current) loadLevel(i);
       });
       bar.appendChild(node);
@@ -359,13 +366,13 @@
     });
 
     el.strip.appendChild(bar);
-  }
+  };
 
-  function renderProgress() {
+  const renderProgress = () => {
     el.progressCount.textContent = completed.size + " / " + LEVELS.length;
-  }
+  };
 
-  function renderItems(level) {
+  const renderItems = (level) => {
     // Kennels (target layer) and dogs (player layer), same count & sizing.
     el.target.innerHTML = "";
     el.player.innerHTML = "";
@@ -383,11 +390,11 @@
       dog.appendChild(pup);
       el.player.appendChild(dog);
     }
-  }
+  };
 
   // Render the controls as a mini CSS "file": the player fills in the values
   // inside a real-looking rule (.puppy-yard { display: flex; ... }).
-  function renderControls(level) {
+  const renderControls = (level) => {
     el.controls.innerHTML = "";
 
     const editor = document.createElement("div");
@@ -406,13 +413,13 @@
     const body = document.createElement("div");
     body.className = "code-body";
 
-    function addLine(html, indent) {
+    const addLine = (html, indent) => {
       const l = document.createElement("div");
       l.className = "code-line" + (indent ? " code-indent" : "");
       l.innerHTML = html;
       body.appendChild(l);
       return l;
-    }
+    };
 
     // Selector + the fixed flex declaration.
     addLine('<span class="tok-sel">.puppy-yard</span> <span class="tok-punc">{</span>');
@@ -423,7 +430,7 @@
     );
 
     // One editable declaration per control.
-    level.controls.forEach(function (ctrl) {
+    level.controls.forEach((ctrl) => {
       const propId = "inp-" + ctrl.property;
       const l = document.createElement("div");
       l.className = "code-line code-indent";
@@ -450,12 +457,12 @@
       input.setAttribute("dir", "ltr");
       input.setAttribute("aria-label", ctrl.label);
 
-      input.addEventListener("input", function () {
+      input.addEventListener("input", () => {
         audio.tick();
         updatePlayerLayer(true);
         clearFeedback();
       });
-      input.addEventListener("keydown", function (e) {
+      input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); check(); }
       });
 
@@ -475,15 +482,33 @@
 
     editor.appendChild(body);
     el.controls.appendChild(editor);
-  }
+  };
 
   /* --------------------------- Load a level ----------------------------- */
-  function loadLevel(index) {
+  const loadLevel = async (index) => {
+    //TODO insert loading screen
+    let levelData;
+try{
+    const response=await fetch(`/getLevel/${index}`,{
+      method:"GET"
+    });
+
+    if(!response.ok){
+      throw new Error("Error on Level get");
+    }
+
+    levelData= await response.json();
+
+  }catch(err){
+    console.error("Failed to load level", err);
+    showFeedback("שגיאה בטעינת השלב, נסו לרענן את הדף", "err");
+    return;
+  }
     current = index;
-    solvedThisLevel = completed.has(LEVELS[index].id);
+    solvedThisLevel = completed.has(index+1);
     hintUsed = false;
     wrongAttempts = 0;
-    const level = LEVELS[index];
+    const level = levelData;
 
     el.title.textContent = level.title;
     el.instruction.textContent = level.instruction;
@@ -491,8 +516,8 @@
     renderControls(level);
     renderItems(level);
 
-    // Target layer laid out with the SOLUTION; player layer with the defaults.
-    applyLayerStyles(el.target, level.solution);
+    // Target layer laid out with the kennelParameters; player layer with the defaults.
+    applyLayerStyles(el.target, level.kennelParameters);
     updatePlayerLayer();
 
     // Reset transient UI.
@@ -509,20 +534,20 @@
     renderStrip();
     renderProgress();
     saveProgress();
-  }
+  };
 
   /* ------------------------- Feedback (popup toast) --------------------- */
   let toastTimer = null;
 
-  function clearFeedback() {
+  const clearFeedback = () => {
     window.clearTimeout(toastTimer);
     el.toast.classList.remove("show");
-  }
+  };
 
   // Show the success/error message as a centered popup. The toast element is
   // always in the DOM (invisible via opacity), so toggling the "show" class
   // animates it in/out reliably. `isHtml` carries the icon + star row.
-  function showFeedback(content, kind, isHtml) {
+  const showFeedback = (content, kind, isHtml) => {
     if (isHtml) el.toast.innerHTML = content;
     else el.toast.textContent = content;
     el.toast.classList.remove("is-ok", "is-err");
@@ -530,10 +555,10 @@
     el.toast.classList.add("show");
     window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(clearFeedback, kind === "ok" ? 2800 : 2000);
-  }
+  };
 
   // Build the centered white popup: icon (✓ / ✕), stars (success only), message.
-  function showResult(kind, msg, stars) {
+  const showResult = (kind, msg, stars) => {
     const icon =
       '<span class="toast-icon ' + kind + '">' + (kind === "ok" ? CHECK_SVG : X_SVG) + "</span>";
     const starsHtml =
@@ -541,7 +566,7 @@
     const sr =
       kind === "ok" ? '<span class="sr-only">קיבלת ' + stars + " מתוך 3 כוכבים</span>" : "";
     showFeedback(icon + starsHtml + '<span class="toast-msg">' + msg + "</span>" + sr, kind, true);
-  }
+  };
 
   const WRONG_MESSAGES = [
     "הכלבים עוד לא בבית — נסו ערך אחר.",
@@ -550,16 +575,31 @@
   ];
 
   /* ---------------------------- Validation ------------------------------ */
-  function check() {
-    const level = LEVELS[current];
+  const check= async ()=>{
+    let correct=true;
+  try{
+    
     const values = readInputs();
-    let correct = true;
-    for (const prop in level.solution) {
-      if (values[prop] !== level.solution[prop]) { correct = false; break; }
+    const checkSolution= await fetch("/checkSolution",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({current,values}),
+    });
+    
+    if(!checkSolution.ok){
+      throw new Error("Check failed");
     }
 
-    if (correct) {
-      onSolved(level);
+    const response=await checkSolution.json();
+
+    correct= response;
+  }catch{
+      correct= false; 
+  }
+  if (correct) {
+      onSolved(LEVELS[current]);
     } else {
       wrongAttempts++;
       audio.error();
@@ -569,31 +609,31 @@
       void el.board.offsetWidth;
       el.board.classList.add("shake");
     }
-  }
+  };
 
   // 3 stars = solved first try with no hint; each of (hint used) / (any wrong
   // attempt) costs a star, floored at 1.
-  function computeStars() {
+  const computeStars = () => {
     let s = 3;
     if (hintUsed) s -= 1;
     if (wrongAttempts > 0) s -= 1;
     return Math.max(1, s);
-  }
+  };
 
   // Little "Woof!" speech bubbles above the dogs when the level is solved.
-  function popWoofs() {
+  const popWoofs = () => {
     const dogs = Array.prototype.slice.call(el.player.children);
-    dogs.forEach(function (d, i) {
+    dogs.forEach((d, i) => {
       const bubble = document.createElement("div");
       bubble.className = "woof";
       bubble.textContent = "Woof!";
       bubble.style.animationDelay = (i * 0.08) + "s";
       d.appendChild(bubble);
-      window.setTimeout(function () { bubble.remove(); }, 1500 + i * 80);
+      window.setTimeout(() => { bubble.remove(); }, 1500 + i * 80);
     });
-  }
+  };
 
-  function onSolved(level) {
+  const onSolved = (level) => {
     const stars = computeStars();
 
     // Centered popup with the ✓ icon + star row + message.
@@ -603,7 +643,7 @@
     launchConfetti();
     popWoofs();
     audio.success();
-    window.setTimeout(function () { audio.bark(); }, 230);
+    window.setTimeout(() => { audio.bark(); }, 230);
 
     // Record best stars for this level.
     if (!starsById[level.id] || stars > starsById[level.id]) {
@@ -628,14 +668,14 @@
       el.nextBtn.classList.remove("hidden");
       el.nextBtn.focus();
     }
-  }
+  };
 
   /* ------------------------------ Actions ------------------------------- */
-  function resetLevel() {
+  const resetLevel = () => {
     audio.click();
     // Clear the typed values so the player starts the level over (fresh attempt).
     const inputs = el.controls.querySelectorAll("input");
-    inputs.forEach(function (input) { input.value = ""; });
+    inputs.forEach((input) => { input.value = ""; });
     hintUsed = false;
     wrongAttempts = 0;
     updatePlayerLayer(true);
@@ -643,61 +683,72 @@
     el.board.classList.remove("solved");
     el.nextBtn.classList.add("hidden");
     if (inputs.length) inputs[0].focus();
-  }
+  };
 
-  function nextLevel() {
+  const nextLevel = () => {
     if (current < LEVELS.length - 1) { audio.chime(); loadLevel(current + 1); }
-  }
+  };
 
-  function toggleHint() {
+  const toggleHint = () => {
     audio.click();
     if (el.hintBox.classList.contains("hidden")) showHint();
     else hideHint();
-  }
+  };
 
-  function showHint() {
+  const showHint = async () => {
     hintUsed = true;
-    el.hintBox.textContent = LEVELS[current].hint;
+    el.hintBox.textContent = await fetchHint(current);
     el.hintBox.classList.remove("hidden");
     el.hintBtn.setAttribute("aria-expanded", "true");
-  }
+  };
 
-  function hideHint() {
+  const fetchHint= async (id)=>{
+    try {
+      const response = await fetch(`/getHint/${id}`, { method: "GET" });
+      if (!response.ok) throw new Error("Error on level's hint get");
+      return await response.json();
+    } catch (err) {
+      console.error("Failed to load hint", err);
+      return "";
+    }
+  };
+
+  const hideHint = () => {
     el.hintBox.classList.add("hidden");
     el.hintBtn.setAttribute("aria-expanded", "false");
-  }
+  };
 
   /* ------------------------------ Win ----------------------------------- */
-  function showWin() {
+  const showWin = () => {
     el.winOverlay.classList.remove("hidden");
     launchConfetti();
-  }
+  };
 
-  function restart() {
+  const restart = () => {
     audio.click();
     completed = new Set();
     current = 0;
     saveProgress();
     el.winOverlay.classList.add("hidden");
     loadLevel(0);
-  }
+  };
 
   /* ------------------------------ Mute ---------------------------------- */
-  function renderMute() {
+  const renderMute = () => {
     const muted = audio.isMuted();
     el.muteBtn.innerHTML = muted ? SPEAKER_OFF : SPEAKER_ON;
     el.muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
     el.muteBtn.classList.toggle("is-muted", muted);
-  }
+  };
 
-  function toggleMute() {
+  const toggleMute = () => {
     audio.toggle();
     renderMute();
-  }
+  };
 
   /* ---------------------------- Confetti -------------------------------- */
-  function launchConfetti() {
-    const colors = PALETTE.map(function (c) { return c.main; }).concat(["#2aa7e0", "#15803d"]);
+  const launchConfetti = () => {
+    const colors = PALETTE.map((c) => c.main).concat(["#2aa7e0", "#15803d"]);
     const count = 28;
     for (let i = 0; i < count; i++) {
       const piece = document.createElement("div");
@@ -709,12 +760,20 @@
       piece.style.animation = "confetti-fall " + duration + "s ease-in " + delay + "s forwards";
       piece.style.transform = "translateY(0) rotate(" + (Math.random() * 360) + "deg)";
       document.body.appendChild(piece);
-      window.setTimeout(function () { piece.remove(); }, (duration + delay) * 1000 + 100);
+      window.setTimeout(() => { piece.remove(); }, (duration + delay) * 1000 + 100);
     }
-  }
+  };
 
   /* ------------------------------ Wire up ------------------------------- */
-  function init() {
+  const init = async () => {
+    try {
+      const response = await fetch("/getLevels", { method: "GET" });
+      if (!response.ok) throw new Error("Error on levels list get");
+      LEVELS = await response.json();
+    } catch (err) {
+      console.error("Failed to load levels list", err);
+      return;
+    }
     if (!LEVELS.length) return;
     loadProgress();
 
@@ -727,16 +786,16 @@
     renderMute();
 
     // Unlock the AudioContext on the first user gesture (browser autoplay policy).
-    function unlockOnce() {
+    const unlockOnce = () => {
       audio.unlock();
       document.removeEventListener("pointerdown", unlockOnce);
       document.removeEventListener("keydown", unlockOnce);
-    }
+    };
     document.addEventListener("pointerdown", unlockOnce);
     document.addEventListener("keydown", unlockOnce);
 
     loadLevel(current);
-  }
+  };
 
   document.addEventListener("DOMContentLoaded", init);
 })();

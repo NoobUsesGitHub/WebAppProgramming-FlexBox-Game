@@ -187,6 +187,7 @@ body {
 }
 
 .pnode {
+  position: relative;
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
@@ -211,6 +212,23 @@ body {
   border-color: var(--accent);
   color: #fff;
 }
+
+.pnode-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--ok);
+  border: 2px solid var(--surface);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pnode-badge svg { width: 9px; height: 9px; }
 
 .pnode.is-active {
   border-color: var(--accent);
@@ -649,15 +667,6 @@ label.tok-prop { cursor: pointer; }
   color: var(--accent);
 }
 
-/* ----------------------------- Footer ----------------------------------- */
-.app-footer {
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  border-top: 1px solid var(--line);
-  padding-top: 20px;
-}
-.app-footer p { margin: 0; }
 
 /* ---------------------------- Win overlay ------------------------------- */
 .win-overlay {
