@@ -1,4 +1,4 @@
-const levels=require("./levels.json");
+const levels=require("../public_files/js/levels.json");
 
 const onInit=(levelsData)=>{
     const map=new Map();

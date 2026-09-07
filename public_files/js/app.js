@@ -1,163 +1,40 @@
 /*
  * Puppy Park — Controller & Engine
  * --------------------------------
- * Reads the LEVELS data layer (fetched from /getLevels) and runs the whole game:
+ * Reads the LEVELS data layer (fetched from js/levels.json) and runs the whole game:
  *   - builds the DOM for each level (instruction, dropdowns, dogs, kennels)
  *   - live preview: dropdown changes update the player layer's inline CSS
  *   - validation: compares the player's values to the level's solution
  *   - right / wrong feedback, hints, per-level reset
  *   - progress persistence via localStorage
  *
- * No frameworks, no libraries, Flexbox only.
  */
 
 (() => {
   "use strict";
 
-  /* ------------------------- SVG assets (inline) ------------------------- */
-  // Kept inline so each dog can be colored on the fly. Source-equivalent
-  // markup also lives in /assets for reference.
-
-  const FACE = "#2b2118";
-
-  // Front-facing puppy (looking at the player). Paws, ears, tail and body carry
-  // classes so CSS can animate a little waddle while the dog is moving.
-  const svgDog = (color) => {
-    // color = { main, dark }
-    return (
-      '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
-        // back paws (behind body)
-        '<ellipse class="paw paw-b" cx="22" cy="53" rx="4.6" ry="3.6" fill="' + color.dark + '"/>' +
-        '<ellipse class="paw paw-a" cx="42" cy="53" rx="4.6" ry="3.6" fill="' + color.dark + '"/>' +
-        // tail (peeks out behind the body)
-        '<path class="tail" d="M43 41 q10 -2 9 -11 q-1 6 -9 5 z" fill="' + color.dark + '"/>' +
-        // body
-        '<ellipse cx="32" cy="43" rx="13.5" ry="11.5" fill="' + color.main + '"/>' +
-        // belly highlight
-        '<ellipse cx="32" cy="46" rx="8" ry="7.5" fill="rgba(255,255,255,.5)"/>' +
-        // front paws
-        '<ellipse class="paw paw-a" cx="25" cy="54.5" rx="4.9" ry="3.9" fill="' + color.main + '"/>' +
-        '<ellipse class="paw paw-b" cx="39" cy="54.5" rx="4.9" ry="3.9" fill="' + color.main + '"/>' +
-        // ears
-        '<path class="ear ear-l" d="M19 11 q-9 4 -7 17 q7 -2 11 -9 z" fill="' + color.dark + '"/>' +
-        '<path class="ear ear-r" d="M45 11 q9 4 7 17 q-7 -2 -11 -9 z" fill="' + color.dark + '"/>' +
-        // head
-        '<circle cx="32" cy="24" r="15" fill="' + color.main + '"/>' +
-        // muzzle
-        '<ellipse cx="32" cy="30" rx="8.2" ry="6.2" fill="rgba(255,255,255,.82)"/>' +
-        // eyes
-        '<circle cx="25.6" cy="22" r="2.7" fill="' + FACE + '"/>' +
-        '<circle cx="38.4" cy="22" r="2.7" fill="' + FACE + '"/>' +
-        '<circle cx="26.6" cy="21.1" r=".9" fill="#fff"/>' +
-        '<circle cx="39.4" cy="21.1" r=".9" fill="#fff"/>' +
-        // nose + mouth
-        '<ellipse cx="32" cy="27.6" rx="2.8" ry="2.1" fill="' + FACE + '"/>' +
-        '<path d="M32 29.7 v2.4 M32 32.1 q-2.6 2 -5 .3 M32 32.1 q2.6 2 5 .3" ' +
-          'stroke="' + FACE + '" stroke-width="1.5" fill="none" stroke-linecap="round"/>' +
-      "</svg>"
-    );
-  };
-
-  const svgKennel = () => {
-    return (
-      '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
-        // body
-        '<path d="M12 28 L32 12 L52 28 V53 a1 1 0 0 1 -1 1 H13 a1 1 0 0 1 -1 -1 Z" ' +
-          'fill="#efe9e0" stroke="#a8a29e" stroke-width="2" stroke-linejoin="round"/>' +
-        // roof
-        '<path d="M32 8 L57 29 H50 L32 14.5 L14 29 H7 Z" ' +
-          'fill="#a8a29e" stroke="#a8a29e" stroke-width="1" stroke-linejoin="round"/>' +
-        // door
-        '<path d="M24 54 V40 a8 9 0 0 1 16 0 V54 Z" fill="#8a827a"/>' +
-      "</svg>"
-    );
-  };
-
-  // >= 6 distinct dog colors (level 7 needs 6).
-  const PALETTE = [
-    { main: "#f59e0b", dark: "#b45309" }, // amber
-    { main: "#60a5fa", dark: "#2563eb" }, // blue
-    { main: "#34d399", dark: "#059669" }, // green
-    { main: "#fb7185", dark: "#e11d48" }, // rose
-    { main: "#a78bfa", dark: "#7c3aed" }, // violet
-    { main: "#c68a5b", dark: "#8b5a2b" }, // brown
-    { main: "#2dd4bf", dark: "#0d9488" }, // teal
-  ];
-
-  // Base flex values so both layers share identical box metrics; each level
-  // overrides only the properties it controls.
-  const BASE = {
-    "flex-direction": "row",
-    "flex-wrap": "nowrap",
-    "justify-content": "flex-start",
-    "align-items": "flex-start",
-  };
-
-  const PROP_TO_CAMEL = {
-    "flex-direction": "flexDirection",
-    "flex-wrap": "flexWrap",
-    "justify-content": "justifyContent",
-    "align-items": "alignItems",
-  };
-
-  const STORAGE_KEY = "puppypark.progress";
-  const MUTE_KEY = "puppypark.muted";
-
-  /* ------------------------------ Audio --------------------------------- */
-  // Procedural sound effects via the native Web Audio API — no files, no
-  // library. The context is created lazily and resumed on a user gesture.
-  const audio = (() => {
-    let ctx = null;
-    let muted = false;
-    try { muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
-
-    const ready = () => {
-      if (muted) return null;
-      if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        try { ctx = new AC(); } catch (e) { ctx = null; return null; }
-      }
-      if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
-      return ctx;
-    };
-
-    // One short enveloped tone.
-    const tone = (freq, startAt, dur, type, peak) => {
-      const c = ready();
-      if (!c) return;
-      const t0 = c.currentTime + (startAt || 0);
-      const osc = c.createOscillator();
-      const g = c.createGain();
-      osc.type = type || "sine";
-      osc.frequency.setValueAtTime(freq, t0);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.linearRampToValueAtTime(peak || 0.12, t0 + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      osc.connect(g); g.connect(c.destination);
-      osc.start(t0); osc.stop(t0 + dur + 0.03);
-    };
-
-    return {
-      isMuted: () => muted,
-      unlock: () => { ready(); },
-      toggle: () => {
-        muted = !muted;
-        try { localStorage.setItem(MUTE_KEY, muted ? "1" : "0"); } catch (e) {}
-        if (!muted) { ready(); tone(320, 0, 0.06, "triangle", 0.06); }
-        return muted;
-      },
-      tick:    () => tone(200, 0, 0.04, "square", 0.03),
-      click:   () => tone(320, 0, 0.06, "triangle", 0.06),
-      error:   () => { tone(190, 0, 0.12, "sawtooth", 0.06); tone(140, 0.09, 0.16, "sawtooth", 0.06); },
-      success: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.09, 0.24, "triangle", 0.08)); },
-      bark:    () => { tone(430, 0.02, 0.09, "square", 0.09); tone(300, 0.11, 0.12, "square", 0.08); },
-      chime:   () => { tone(784, 0, 0.16, "sine", 0.07); tone(1047, 0.08, 0.2, "sine", 0.06); },
-    };
-  })();
+  /* --------------------------- Shared utilities -------------------------- */
+  // svgDog, svgKennel, starSvg/starRow, icon SVGs, PALETTE/BASE/PROP_TO_CAMEL,
+  // STORAGE_KEY/MUTE_KEY and the audio module all live in utils.js (loaded
+  // before this file) as they carry no game state and are reused as-is.
+  const {
+    svgDog,
+    svgKennel,
+    starRow,
+    SPEAKER_ON,
+    SPEAKER_OFF,
+    CHECK_SVG,
+    LOCK_SVG,
+    X_SVG,
+    PALETTE,
+    BASE,
+    PROP_TO_CAMEL,
+    STORAGE_KEY,
+    audio,
+  } = window.PuppyParkUtils;
 
   /* ------------------------------ State --------------------------------- */
-  let LEVELS = [];                 // filled from /getLevels on init: [{id, title}, ...]
+  let LEVELS = [];                 // filled from js/levels.json on init: full level objects
   let current = 0;                 // active level index
   let completed = new Set();       // completed level ids
   let solvedThisLevel = false;     // guards double-completing
@@ -184,30 +61,6 @@
     winOverlay: document.getElementById("win-overlay"),
     restartBtn: document.getElementById("restart-btn"),
     muteBtn: document.getElementById("mute-btn"),
-  };
-
-  /* ------------------------------ Icons --------------------------------- */
-  var SPEAKER_ON =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>';
-  var SPEAKER_OFF =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>';
-
-  const starSvg = (on) => {
-    return (
-      '<svg class="star' + (on ? " is-on" : "") + '" viewBox="0 0 24 24" aria-hidden="true">' +
-      '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>'
-    );
-  };
-  const starRow = (n) => {
-    var s = "";
-    for (var i = 0; i < 3; i++) {
-      s += '<span class="star-wrap" style="animation-delay:' + (i * 0.1) + 's">' + starSvg(i < n) + "</span>";
-    }
-    return s;
   };
 
   /* --------------------------- Persistence ------------------------------ */
@@ -265,6 +118,34 @@
     REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   } catch (e) { /* no matchMedia */ }
 
+  /* ---------------------------- Board scaling ---------------------------- */
+  // The board's own width/height (--board-size in style.css) never changes
+  // with screen size, so a level's Flexbox solution is identical on every
+  // device. On screens too narrow to fit it, we shrink the whole board as
+  // one visual unit with a transform (its box model stays fixed) instead of
+  // resizing it — must stay in sync with the stacked-layout breakpoint below.
+  const BOARD_STACK_BREAKPOINT = 767;
+
+  const fitBoard = () => {
+    const boardSize = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--board-size")
+    ) || 440;
+    const viewport = document.documentElement.clientWidth;
+
+    let scale = 1;
+    if (viewport <= BOARD_STACK_BREAKPOINT) {
+      const appPadding = parseFloat(getComputedStyle(el.board.closest(".app")).paddingLeft) || 0;
+      const available = viewport - appPadding * 2;
+      scale = Math.min(1, available / boardSize);
+    }
+
+    el.board.style.transform = scale < 1 ? "scale(" + scale + ")" : "";
+    const wrap = el.board.parentElement;
+    const displayed = boardSize * scale;
+    wrap.style.width = displayed + "px";
+    wrap.style.height = displayed + "px";
+  };
+
   // Push the player's typed values onto the dogs layer. When `animate` is true,
   // the dogs walk to their new spots using a FLIP transition (measure First,
   // apply Last, invert, then play), with a walk-cycle class while in motion.
@@ -307,19 +188,6 @@
   };
 
   /* ---------------------------- Rendering ------------------------------- */
-  var CHECK_SVG =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
-
-  var LOCK_SVG =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-
-  var X_SVG =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-
   // Progress bar of level nodes. A level is playable only if it's already
   // completed or is the current level; every unsolved future level is disabled.
   const renderStrip = () => {
@@ -485,25 +353,12 @@
   };
 
   /* --------------------------- Load a level ----------------------------- */
-  const loadLevel = async (index) => {
-    //TODO insert loading screen
-    let levelData;
-try{
-    const response=await fetch(`/getLevel/${index}`,{
-      method:"GET"
-    });
-
-    if(!response.ok){
-      throw new Error("Error on Level get");
+  const loadLevel = (index) => {
+    const levelData = LEVELS[index];
+    if (!levelData) {
+      showFeedback("שגיאה בטעינת השלב, נסו לרענן את הדף", "err");
+      return;
     }
-
-    levelData= await response.json();
-
-  }catch(err){
-    console.error("Failed to load level", err);
-    showFeedback("שגיאה בטעינת השלב, נסו לרענן את הדף", "err");
-    return;
-  }
     current = index;
     solvedThisLevel = completed.has(index+1);
     hintUsed = false;
@@ -575,39 +430,33 @@ try{
   ];
 
   /* ---------------------------- Validation ------------------------------ */
-  const check= async ()=>{
-    let correct=true;
-  try{
-    
+  // Compares the player's typed values to the level's solution. A solution
+  // value may be a single string, or an array of accepted alternatives
+  // (e.g. justify-content: "end" vs the legacy "flex-end").
+  const check = () => {
+    const solution = LEVELS[current].solution;
     const values = readInputs();
-    const checkSolution= await fetch("/checkSolution",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({current,values}),
-    });
-    
-    if(!checkSolution.ok){
-      throw new Error("Check failed");
+
+    let correct = true;
+    for (const prop in solution) {
+      if (Array.isArray(solution[prop])) {
+        if (!solution[prop].includes(values[prop])) { correct = false; break; }
+      } else if (values[prop] !== solution[prop]) {
+        correct = false; break;
+      }
     }
 
-    const response=await checkSolution.json();
-
-    correct= response;
-  }catch{
-      correct= false; 
-  }
-  if (correct) {
+    if (correct) {
       onSolved(LEVELS[current]);
     } else {
       wrongAttempts++;
       audio.error();
       const msg = WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)];
       showResult("err", msg);
-      el.board.classList.remove("shake");
-      void el.board.offsetWidth;
-      el.board.classList.add("shake");
+      const wrap = el.board.parentElement;
+      wrap.classList.remove("shake");
+      void wrap.offsetWidth;
+      wrap.classList.add("shake");
     }
   };
 
@@ -695,22 +544,11 @@ try{
     else hideHint();
   };
 
-  const showHint = async () => {
+  const showHint = () => {
     hintUsed = true;
-    el.hintBox.textContent = await fetchHint(current);
+    el.hintBox.textContent = (LEVELS[current] && LEVELS[current].hint) || "";
     el.hintBox.classList.remove("hidden");
     el.hintBtn.setAttribute("aria-expanded", "true");
-  };
-
-  const fetchHint= async (id)=>{
-    try {
-      const response = await fetch(`/getHint/${id}`, { method: "GET" });
-      if (!response.ok) throw new Error("Error on level's hint get");
-      return await response.json();
-    } catch (err) {
-      console.error("Failed to load hint", err);
-      return "";
-    }
   };
 
   const hideHint = () => {
@@ -767,7 +605,7 @@ try{
   /* ------------------------------ Wire up ------------------------------- */
   const init = async () => {
     try {
-      const response = await fetch("/getLevels", { method: "GET" });
+      const response = await fetch("js/levels.json", { method: "GET" });
       if (!response.ok) throw new Error("Error on levels list get");
       LEVELS = await response.json();
     } catch (err) {
@@ -793,6 +631,9 @@ try{
     };
     document.addEventListener("pointerdown", unlockOnce);
     document.addEventListener("keydown", unlockOnce);
+
+    fitBoard();
+    window.addEventListener("resize", fitBoard);
 
     loadLevel(current);
   };

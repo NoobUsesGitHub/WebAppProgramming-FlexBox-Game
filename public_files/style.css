@@ -60,7 +60,11 @@
   --shadow:    0 1px 2px rgba(28,25,23,.05), 0 8px 24px rgba(28,25,23,.06);
   --shadow-sm: 0 1px 2px rgba(28,25,23,.06);
 
-  --board-size: clamp(320px, 42vw, 480px);
+  /* Fixed on every screen size, never vw/clamp-based: each level's Flexbox
+     solution must stay identical regardless of resolution. Narrow screens
+     shrink the board as one visual unit via a JS transform (see fitBoard in
+     app.js), not by resizing this box. */
+  --board-size: 440px;
   --item: 80px;   /* the shared dog/kennel box */
   --font: "Heebo", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
@@ -280,19 +284,28 @@ body {
   justify-content: center;
 }
 
-/* Wrapper lets the fixed-size board scale down as one unit on small screens */
+/* Wrapper lets the fixed-size board scale down as one unit on small screens.
+   Positioned so .board (absolutely placed at its top-left corner) scales
+   from that same corner — otherwise scaling from the center of a box wider
+   than its shrunk wrapper drags the board off-center. */
 .board-scale {
-  width: var(--board-size);
-  max-width: 100%;
-}
-
-.board {
   position: relative;
   width: var(--board-size);
   height: var(--board-size);
-  max-width: 100%;
-  /* No outline, no background — the play area blends into the page ground. */
-  overflow: visible;
+}
+
+.board {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--board-size);
+  height: var(--board-size);
+  transform-origin: top left;
+  /* No outline, no background — the play area blends into the page ground.
+     Clipped (not visible): when a level's unsolved default overflows the
+     box (e.g. 6 dogs with nowrap), it must be cut off at the board's own
+     edge, not escape onto the page past the board's boundary. */
+  overflow: hidden;
 }
 
 /* Decorative park scenery, sits behind the kennels and dogs. */
@@ -740,7 +753,10 @@ label.tok-prop { cursor: pointer; }
   40%, 60% { transform: translateX(7px); }
 }
 
-.board.shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
+/* Applied to .board-scale, not .board: .board already carries its own
+   scale() transform (see fitBoard in app.js) that a CSS animation on the
+   same element would overwrite instead of compose with. */
+.board-scale.shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
 
 @keyframes dog-hop {
   0%   { transform: translateY(0); }
@@ -807,7 +823,6 @@ label.tok-prop { cursor: pointer; }
 /* --------------------------- Responsive --------------------------------- */
 /* Stack the board and panel on narrower screens; scale the board down whole. */
 @media (max-width: 767px) {
-  :root { --board-size: min(86vw, 420px); }
   .game { flex-direction: column; align-items: center; }
   .board-side { width: 100%; }
   .panel { width: 100%; min-height: auto; }   /* no forced height when stacked */
