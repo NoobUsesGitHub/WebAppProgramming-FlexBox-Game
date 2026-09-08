@@ -11,7 +11,9 @@ frameworks, and no CSS Grid. Flexbox only.
 ## Play
 
 - **Live site (GitHub Pages):** _added after first deploy_
-- **Locally, static:** open `public_files/index.html` in a browser.
+- **Locally, static:** the game reads `public_files/js/levels.json` via `fetch`, which
+  browsers block on the `file://` scheme — serve the folder instead of double-clicking
+  `index.html`, e.g. `npx serve public_files` (or the VS Code "Live Server" extension).
 - **Locally, via the Express dev server:**
   ```bash
   npm install
@@ -34,14 +36,22 @@ survives a page refresh.
 
 ```
 public_files/
-├── index.html      # DOM skeleton (SPA) — header, level strip, board, controls, hint box
-├── style.css       # all styling: board, layers, dogs/kennels, responsive, animations
+├── index.html        # DOM skeleton (SPA) — header, level strip, board, controls, hint box
+├── style.css         # all styling: board, layers, dogs/kennels, responsive, animations
 ├── js/
-│   ├── levels.js   # Data Layer — the 7 levels (instructions, controls, solutions, hints)
-│   └── app.js      # Controller/Engine — loadLevel, live preview, validation, hints, storage
-└── assets/         # reference SVGs (dog, kennel)
-server.js           # tiny Express server for local dev (serves public_files/)
+│   ├── levels.json   # Data Layer — the 7 levels (instructions, controls, solutions, hints)
+│   ├── utils.js      # shared, state-free helpers: SVGs, palette, audio
+│   └── app.js        # Controller/Engine — loadLevel, live preview, validation, hints, storage
+└── Assets/           # reference SVGs (dog, kennel)
+Server_files/         # optional Express dev server — not needed for GitHub Pages,
+                       # everything the game needs is static under public_files/
 ```
+
+Everything the game needs — level data, validation, hints — is loaded straight out of
+`public_files/js/levels.json` in the browser, so `public_files/` on its own is a
+complete static site (what GitHub Pages serves). `Server_files/` is a small optional
+Express server kept for local dev convenience; it reads the same `levels.json` and
+isn't part of the deployed site.
 
 The game board is a fixed **380×380** area with two overlapping Flexbox layers: a
 non-interactive **target** layer (kennels, laid out with the level's solution) and a

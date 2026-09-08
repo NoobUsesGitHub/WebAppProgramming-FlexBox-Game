@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Puppy Park — משחק Flexbox</title>
   <meta name="description" content="Puppy Park — משחק אינטראקטיבי ללימוד CSS Flexbox. סדרו את הכלבים במלונות שלהם.">
-
+  <link rel="icon" href="Assets/dog.svg">
   <!-- Heebo is self-hosted (see @font-face in style.css) — no external requests. -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -122,10 +122,6 @@
         </div>
       </section>
     </main>
-
-    <footer class="app-footer">
-      <p>נבנה בעזרת HTML, CSS ו-JavaScript טהורים · ללא ספריות חיצוניות · Flexbox בלבד</p>
-    </footer>
   </div>
 
   <!-- ============ Success / error popup toast ============ -->
@@ -144,9 +140,7 @@
       <button type="button" class="btn btn-primary" id="restart-btn">שחקו שוב</button>
     </div>
   </div>
-
-  <!-- Data layer first, then the engine. Plain scripts, no modules (per spec). -->
-  <script src="js/levels.js"></script>
+  <script src="js/utils.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
