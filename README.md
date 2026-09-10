@@ -42,7 +42,7 @@ public_files/
 │   ├── levels.json   # Data Layer — the 7 levels (instructions, controls, solutions, hints)
 │   ├── utils.js      # shared, state-free helpers: SVGs, palette, audio
 │   └── app.js        # Controller/Engine — loadLevel, live preview, validation, hints, storage
-└── Assets/           # reference SVGs (dog, kennel)
+└── assets/           # reference SVGs (dog, kennel)
 Server_files/         # optional Express dev server — not needed for GitHub Pages,
                        # everything the game needs is static under public_files/
 ```

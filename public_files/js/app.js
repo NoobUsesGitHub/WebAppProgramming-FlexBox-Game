@@ -113,6 +113,22 @@
     return values;
   };
 
+  // Values that drive the dogs. Start from the level's control defaults so an
+  // empty box renders at its default position — falling back to BASE instead
+  // would rest the dogs on the grass, which on some levels is the answer and
+  // would look already solved — then apply whatever the player has typed.
+  // Validation still uses readInputs(), so an empty box never counts as solved.
+  const playerValues = () => {
+    const level = LEVELS[current];
+    const values = {};
+    if (level && level.controls) {
+      level.controls.forEach((c) => {
+        if (c.default != null) values[c.property] = c.default;
+      });
+    }
+    return Object.assign(values, readInputs());
+  };
+
   var REDUCED = false;
   try {
     REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -157,7 +173,7 @@
       ? dogs.map((d) => d.getBoundingClientRect())
       : null;
 
-    applyLayerStyles(el.player, readInputs());
+    applyLayerStyles(el.player, playerValues());
     if (!animate) return;
 
     dogs.forEach((d, i) => {
@@ -195,10 +211,19 @@
     const bar = document.createElement("div");
     bar.className = "progress-bar";
 
+    // The "frontier" is the first not-yet-completed level: it and every
+    // completed level are always unlocked. This stays fixed while browsing
+    // back, so returning to an earlier level never relocks the level the
+    // player was actually up to.
+    let frontier = LEVELS.length;
+    for (let i = 0; i < LEVELS.length; i++) {
+      if (!completed.has(LEVELS[i].id)) { frontier = i; break; }
+    }
+
     LEVELS.forEach((lvl, i) => {
       const done = completed.has(lvl.id);
       const active = i === current;
-      const locked = !done && !active;
+      const locked = !done && !active && i !== frontier;
 
       const node = document.createElement("button");
       node.type = "button";
@@ -215,7 +240,7 @@
         badge.innerHTML = CHECK_SVG;
         node.appendChild(badge);
       }
-      const state = done ? " — הושלם" : active ? " — נוכחי" : " — נעול";
+      const state = done ? " — הושלם" : active ? " — נוכחי" : locked ? " — נעול" : " — זמין";
       const starNote = starsById[lvl.id] ? " · " + starsById[lvl.id] + "/3 ★" : "";
       node.setAttribute("aria-label", "שלב " + lvl.id + state);
       node.title = "שלב " + lvl.id + " · " + lvl.title + state + starNote;   // hover tooltip
@@ -326,7 +351,6 @@
       input.setAttribute("aria-label", ctrl.label);
 
       input.addEventListener("input", () => {
-        audio.tick();
         updatePlayerLayer(true);
         clearFeedback();
       });
@@ -370,6 +394,17 @@
 
     renderControls(level);
     renderItems(level);
+
+    // If the player already solved this level, pre-fill the inputs with the
+    // solution so revisiting a completed level shows the answer (and the dogs
+    // already home) instead of empty boxes. For a property that accepts several
+    // values (e.g. flex-end / end) we show the first, canonical one.
+    if (completed.has(level.id)) {
+      el.controls.querySelectorAll("input").forEach((input) => {
+        const sol = level.solution[input.dataset.property];
+        if (sol != null) input.value = Array.isArray(sol) ? sol[0] : sol;
+      });
+    }
 
     // Target layer laid out with the kennelParameters; player layer with the defaults.
     applyLayerStyles(el.target, level.kennelParameters);
@@ -523,6 +558,8 @@
   const resetLevel = () => {
     audio.click();
     // Clear the typed values so the player starts the level over (fresh attempt).
+    // An empty box renders as the control's default (see playerValues), so the
+    // board returns to the level's unsolved starting layout.
     const inputs = el.controls.querySelectorAll("input");
     inputs.forEach((input) => { input.value = ""; });
     hintUsed = false;

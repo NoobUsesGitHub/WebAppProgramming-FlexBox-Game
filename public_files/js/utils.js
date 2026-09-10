@@ -123,12 +123,14 @@
   ];
 
   // Base flex values so both layers share identical box metrics; each level
-  // overrides only the properties it controls.
+  // overrides only the properties it controls. The default resting position is
+  // the bottom-end (the grass), so any axis a level doesn't move keeps its
+  // kennels and dogs on the ground instead of floating up in the board.
   const BASE = {
     "flex-direction": "row",
     "flex-wrap": "nowrap",
-    "justify-content": "flex-start",
-    "align-items": "flex-start",
+    "justify-content": "flex-end",
+    "align-items": "flex-end",
   };
 
   const PROP_TO_CAMEL = {

@@ -321,7 +321,11 @@ body {
 .layer {
   display: flex;
   position: absolute;
-  inset: 0;
+  /* Confine play to the lower part of the board: leave a sky strip at the top
+     (sun/clouds) empty so dogs and kennels always sit on the grass, never in
+     the sky. Both layers use this rule, so they shift down together and stay
+     aligned. */
+  inset: 96px 0 0 0;
   padding: 18px;
   /* default flex values; overridden live via inline style */
   flex-direction: row;
@@ -531,6 +535,11 @@ body {
 .tok-val  { color: #0f9d63; }
 .tok-punc { color: var(--muted); }
 label.tok-prop { cursor: pointer; }
+/* Editable declaration rows: fix the property label to the width of the
+   longest property (justify-content = 15ch) so the value boxes line up under
+   one another, and add a gap between the property and its box. */
+.code-line label.tok-prop { display: inline-block; min-width: 15ch; }
+.code-line label.tok-prop + .tok-punc { margin-inline-end: 6px; }
 
 .code-input {
   font: inherit;
