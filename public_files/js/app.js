@@ -20,6 +20,7 @@
   const {
     svgDog,
     svgKennel,
+    starSvg,
     starRow,
     SPEAKER_ON,
     SPEAKER_OFF,
@@ -59,6 +60,7 @@
     hintBox: document.getElementById("hint-box"),
     progressCount: document.getElementById("progress-count"),
     winOverlay: document.getElementById("win-overlay"),
+    winStars: document.getElementById("win-stars"),
     restartBtn: document.getElementById("restart-btn"),
     muteBtn: document.getElementById("mute-btn"),
   };
@@ -220,6 +222,20 @@
       if (!completed.has(LEVELS[i].id)) { frontier = i; break; }
     }
 
+    // Single continuous track behind the nodes, with a filled overlay
+    // reaching up to the frontier's position — see the CSS comment on
+    // .progress-track for why this replaced the old per-segment connectors.
+    const track = document.createElement("div");
+    track.className = "progress-track";
+    bar.appendChild(track);
+
+    const fill = document.createElement("div");
+    fill.className = "progress-fill";
+    const filledSteps = Math.min(frontier, LEVELS.length - 1);
+    const frac = LEVELS.length > 1 ? filledSteps / (LEVELS.length - 1) : 0;
+    fill.style.width = "calc((100% - 36px) * " + frac + ")";
+    bar.appendChild(fill);
+
     LEVELS.forEach((lvl, i) => {
       const done = completed.has(lvl.id);
       const active = i === current;
@@ -250,12 +266,6 @@
         if (!locked && i !== current) loadLevel(i);
       });
       bar.appendChild(node);
-
-      if (i < LEVELS.length - 1) {
-        const conn = document.createElement("div");
-        conn.className = "pconnector" + (done ? " is-filled" : "");
-        bar.appendChild(conn);
-      }
     });
 
     el.strip.appendChild(bar);
@@ -359,7 +369,7 @@
       });
 
       const semi = document.createElement("span");
-      semi.className = "tok-punc";
+      semi.className = "tok-punc tok-semi";
       semi.textContent = ";";
 
       l.appendChild(label);
@@ -428,6 +438,11 @@
 
   /* ------------------------- Feedback (popup toast) --------------------- */
   let toastTimer = null;
+  // Success toast lifetime, and how long its fade-out transition takes (see
+  // .toast's opacity/transform transition in style.css) — the win overlay
+  // waits for both before it appears, so it never shows on top of the toast.
+  const TOAST_OK_MS = 1800;
+  const TOAST_HIDE_ANIM_MS = 320;
 
   const clearFeedback = () => {
     window.clearTimeout(toastTimer);
@@ -444,7 +459,7 @@
     el.toast.classList.add(kind === "ok" ? "is-ok" : "is-err");
     el.toast.classList.add("show");
     window.clearTimeout(toastTimer);
-    toastTimer = window.setTimeout(clearFeedback, kind === "ok" ? 2800 : 2000);
+    toastTimer = window.setTimeout(clearFeedback, kind === "ok" ? TOAST_OK_MS : 2000);
   };
 
   // Build the centered white popup: icon (✓ / ✕), stars (success only), message.
@@ -547,7 +562,9 @@
 
     const isLast = current === LEVELS.length - 1;
     if (isLast && completed.size === LEVELS.length) {
-      window.setTimeout(showWin, 700);
+      // Wait for the congrats toast to fully fade before showing the win
+      // screen, so the two never overlap.
+      window.setTimeout(showWin, TOAST_OK_MS + TOAST_HIDE_ANIM_MS);
     } else if (!isLast) {
       el.nextBtn.classList.remove("hidden");
       el.nextBtn.focus();
@@ -595,6 +612,9 @@
 
   /* ------------------------------ Win ----------------------------------- */
   const showWin = () => {
+    const totalStars = Object.keys(starsById).reduce((sum, id) => sum + starsById[id], 0);
+    const maxStars = LEVELS.length * 3;
+    el.winStars.innerHTML = starSvg(true) + "<span>" + totalStars + " / " + maxStars + "</span>";
     el.winOverlay.classList.remove("hidden");
     launchConfetti();
   };

@@ -110,7 +110,7 @@
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
               איפוס שלב
             </button>
-            <button type="button" class="btn btn-ghost" id="hint-btn" aria-expanded="false" aria-controls="hint-box">
+            <button type="button" class="btn btn-tertiary" id="hint-btn" aria-expanded="false" aria-controls="hint-box">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg>
               רמז
             </button>
@@ -132,11 +132,17 @@
     <div class="win-card">
       <div class="win-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4zM7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3"/>
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
         </svg>
       </div>
       <h2 id="win-title">כל הכבוד! סיימתם את Puppy Park</h2>
       <p>כל 7 השלבים הושלמו — אתם שולטים ב-Flexbox!</p>
+      <div class="win-stars" id="win-stars"></div>
       <button type="button" class="btn btn-primary" id="restart-btn">שחקו שוב</button>
     </div>
   </div>
