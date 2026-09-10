@@ -69,3 +69,7 @@ the solution, the dogs land exactly on the kennels.
 | 5 | justify-content + align-items | `center` + `center` |
 | 6 | flex-direction + align-items | `column` + `flex-end` |
 | 7 | flex-wrap + justify-content | `wrap` + `center` |
+
+## Credits
+
+Made by Shoval Perel and Oz Ben Moshe.

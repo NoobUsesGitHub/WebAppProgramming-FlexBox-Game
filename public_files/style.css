@@ -187,11 +187,38 @@ body {
 .progress-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  position: relative;
   width: 100%;
+}
+
+/* Single continuous track behind the nodes (see renderStrip in app.js): it
+   spans center-to-center of the first/last node, with a filled overlay on
+   top of it — sitting one layer below the nodes so the line visually passes
+   through each node's middle instead of stopping at its edge. */
+.progress-track,
+.progress-fill {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 18px;
+  inset-inline-end: 18px;
+  height: 4px;
+  border-radius: 2px;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.progress-track { background: var(--line); }
+
+.progress-fill {
+  inset-inline-end: auto;
+  background: var(--accent);
+  transition: width .3s ease;
 }
 
 .pnode {
   position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
@@ -256,17 +283,6 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-.pconnector {
-  flex: 1 1 auto;
-  min-width: 10px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line);
-  transition: background .3s ease;
-}
-
-.pconnector.is-filled { background: var(--accent); }
 
 /* ----------------------------- Game area -------------------------------- */
 .game {
@@ -535,11 +551,13 @@ body {
 .tok-val  { color: #0f9d63; }
 .tok-punc { color: var(--muted); }
 label.tok-prop { cursor: pointer; }
-/* Editable declaration rows: fix the property label to the width of the
-   longest property (justify-content = 15ch) so the value boxes line up under
-   one another, and add a gap between the property and its box. */
-.code-line label.tok-prop { display: inline-block; min-width: 15ch; }
+/* Editable declaration rows: the colon sits right after the property name
+   (no fixed label width), so short properties like align-items don't leave
+   a gap before it — only a small fixed gap to the value box follows. */
 .code-line label.tok-prop + .tok-punc { margin-inline-end: 6px; }
+/* The closing semicolon of an editable declaration, kept a bit clear of the
+   value box instead of touching it. */
+.tok-semi { margin-inline-start: 6px; }
 
 .code-input {
   font: inherit;
@@ -548,6 +566,7 @@ label.tok-prop { cursor: pointer; }
   border: 1px solid var(--accent-line);
   border-radius: 5px;
   padding: 1px 8px;
+  margin: 3px 0;
   min-width: 132px;
   outline: none;
   direction: ltr;
@@ -665,6 +684,19 @@ label.tok-prop { cursor: pointer; }
 
 .btn-ghost:hover { border-color: var(--muted); color: var(--ink); }
 
+/* Lowest-emphasis action: no fill, no border at rest — just text that picks
+   up the accent tint on hover/press/toggle-open (used for the hint button,
+   which is a helper, not a primary flow action like check/reset). */
+.btn-tertiary {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: transparent;
+}
+
+.btn-tertiary:hover { background: var(--accent-soft); color: var(--accent-deep); }
+
+.btn-tertiary[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent-deep); }
+
 .btn-next { margin-inline-start: auto; }
 
 .btn:focus-visible {
@@ -726,7 +758,24 @@ label.tok-prop { cursor: pointer; }
 }
 
 .win-card h2 { margin: 0 0 8px; font-size: 22px; }
-.win-card p  { margin: 0 0 22px; color: var(--ink-soft); }
+.win-card p  { margin: 0 0 18px; color: var(--ink-soft); }
+
+.win-stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0 0 22px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.win-stars .star { width: 20px; height: 20px; }
+.win-stars span {
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
 
 /* ---------------------------- Confetti ---------------------------------- */
 .confetti {
