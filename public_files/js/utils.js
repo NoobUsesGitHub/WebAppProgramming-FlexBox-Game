@@ -133,13 +133,22 @@
     "align-items": "flex-end",
   };
 
-  const PROP_TO_CAMEL = {
-    "flex-direction": "flexDirection",
-    "flex-wrap": "flexWrap",
-    "justify-content": "justifyContent",
-    "align-items": "alignItems",
+  const kebabCaseToCamelCase=(property)=>{
+    const chars= property.split('');
+    chars.forEach((char,index)=>
+      {
+      if(index===0)
+        chars[index]=char.toLowerCase();
+      if(char==='-')
+      {
+        chars[index]='';
+        if(chars.length>index+1)
+          chars[index+1]=chars[index+1].toUpperCase();
+      }
+    }
+  );
+    return chars.join('');   
   };
-
   const STORAGE_KEY = "puppypark.progress";
   const MUTE_KEY = "puppypark.muted";
 
@@ -257,7 +266,7 @@
     X_SVG,
     PALETTE,
     BASE,
-    PROP_TO_CAMEL,
+    kebabCaseToCamelCase,
     STORAGE_KEY,
     MUTE_KEY,
     audio,

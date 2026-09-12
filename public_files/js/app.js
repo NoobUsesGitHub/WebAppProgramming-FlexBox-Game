@@ -14,7 +14,7 @@
   "use strict";
 
   /* --------------------------- Shared utilities -------------------------- */
-  // svgDog, svgKennel, starSvg/starRow, icon SVGs, PALETTE/BASE/PROP_TO_CAMEL,
+  // svgDog, svgKennel, starSvg/starRow, icon SVGs, PALETTE/BASE/kebabCaseToCamelCase,
   // STORAGE_KEY/MUTE_KEY and the audio module all live in utils.js (loaded
   // before this file) as they carry no game state and are reused as-is.
   const {
@@ -29,7 +29,7 @@
     X_SVG,
     PALETTE,
     BASE,
-    PROP_TO_CAMEL,
+    kebabCaseToCamelCase,
     STORAGE_KEY,
     audio,
   } = window.PuppyParkUtils;
@@ -38,7 +38,6 @@
   let LEVELS = [];                 // filled from js/levels.json on init: full level objects
   let current = 0;                 // active level index
   let completed = new Set();       // completed level ids
-  let solvedThisLevel = false;     // guards double-completing
   let hintUsed = false;            // did the player open the hint this attempt?
   let wrongAttempts = 0;           // wrong checks on the current attempt
   let starsById = {};              // best stars earned per level id (1–3)
@@ -94,11 +93,9 @@
   // property at its BASE value — and BASE is flex-end, i.e. the answer on some
   // levels — teleporting the dogs home mid-word. Callers use this to keep such
   // values off the board entirely.
-  const CSS_PROBE = document.createElement("div");
   const isValidValue = (prop, value) => {
-    const camel = PROP_TO_CAMEL[prop];
-    if (!camel) return false;
-    CSS_PROBE.style[camel] = "";
+    const camel = kebabCaseToCamelCase(prop);
+    const CSS_PROBE = document.createElement("div");
     CSS_PROBE.style[camel] = value;
     return CSS_PROBE.style[camel] !== "";
   };
@@ -109,11 +106,11 @@
   // player ends up seeing for a property they are still typing.
   const applyLayerStyles = (layerEl, overrides) => {
     for (const prop in BASE) {
-      layerEl.style[PROP_TO_CAMEL[prop]] = BASE[prop];
+      layerEl.style[kebabCaseToCamelCase(prop)] = BASE[prop];
     }
     for (const prop in overrides) {
       const value = Array.isArray(overrides[prop]) ? overrides[prop][0] : overrides[prop];
-      if (value) layerEl.style[PROP_TO_CAMEL[prop]] = value;
+      if (value) layerEl.style[kebabCaseToCamelCase(prop)] = value;
     }
   };
 
@@ -446,7 +443,6 @@
       return;
     }
     current = index;
-    solvedThisLevel = completed.has(index+1);
     hintUsed = false;
     wrongAttempts = 0;
     const level = levelData;
@@ -607,13 +603,9 @@
     if (!completed.has(level.id)) {
       completed.add(level.id);
       renderProgress();
-      renderStrip();
-      saveProgress();
-    } else {
-      renderStrip();  // refresh tooltip stars on replay
-      saveProgress();
     }
-    solvedThisLevel = true;
+    renderStrip();  // also refreshes tooltip stars on replay
+    saveProgress();
 
     const isLast = current === LEVELS.length - 1;
     if (isLast && completed.size === LEVELS.length) {
