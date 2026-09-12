@@ -14,7 +14,7 @@
   "use strict";
 
   /* --------------------------- Shared utilities -------------------------- */
-  // svgDog, svgKennel, starSvg/starRow, icon SVGs, PALETTE/BASE/PROP_TO_CAMEL,
+  // svgDog, svgKennel, starSvg/starRow, icon SVGs, PALETTE/BASE/kebabCaseToCamelCase,
   // STORAGE_KEY/MUTE_KEY and the audio module all live in utils.js (loaded
   // before this file) as they carry no game state and are reused as-is.
   const {
@@ -29,7 +29,7 @@
     X_SVG,
     PALETTE,
     BASE,
-    PROP_TO_CAMEL,
+    kebabCaseToCamelCase,
     STORAGE_KEY,
     audio,
   } = window.PuppyParkUtils;
@@ -38,7 +38,6 @@
   let LEVELS = [];                 // filled from js/levels.json on init: full level objects
   let current = 0;                 // active level index
   let completed = new Set();       // completed level ids
-  let solvedThisLevel = false;     // guards double-completing
   let hintUsed = false;            // did the player open the hint this attempt?
   let wrongAttempts = 0;           // wrong checks on the current attempt
   let starsById = {};              // best stars earned per level id (1–3)
@@ -89,17 +88,29 @@
   };
 
   /* --------------------------- Layer styling ---------------------------- */
+  // Is `value` something the browser actually accepts for `prop`? Half-typed
+  // text ("e", "cen") is rejected by the CSSOM, which would silently leave the
+  // property at its BASE value — and BASE is flex-end, i.e. the answer on some
+  // levels — teleporting the dogs home mid-word. Callers use this to keep such
+  // values off the board entirely.
+  const isValidValue = (prop, value) => {
+    const camel = kebabCaseToCamelCase(prop);
+    const CSS_PROBE = document.createElement("div");
+    CSS_PROBE.style[camel] = value;
+    return CSS_PROBE.style[camel] !== "";
+  };
+
   // Apply flex values to a layer. Two passes so nothing stale leaks between
-  // levels or from invalid typed input: first reset all four to BASE, then
-  // apply the overrides. An invalid CSS value is ignored by the browser, so
-  // that property simply falls back to its BASE value until a valid one is typed.
+  // levels: first reset all four to BASE, then apply the overrides. Callers
+  // pass only values they have already vetted, so BASE is never what the
+  // player ends up seeing for a property they are still typing.
   const applyLayerStyles = (layerEl, overrides) => {
     for (const prop in BASE) {
-      layerEl.style[PROP_TO_CAMEL[prop]] = BASE[prop];
+      layerEl.style[kebabCaseToCamelCase(prop)] = BASE[prop];
     }
     for (const prop in overrides) {
       const value = Array.isArray(overrides[prop]) ? overrides[prop][0] : overrides[prop];
-      if (value) layerEl.style[PROP_TO_CAMEL[prop]] = value;
+      if (value) layerEl.style[kebabCaseToCamelCase(prop)] = value;
     }
   };
 
@@ -112,6 +123,17 @@
       const v = input.value.trim().toLowerCase();
       if (v) values[input.dataset.property] = v;
     });
+    return values;
+  };
+
+  // The typed values that are safe to put on the board: readInputs() minus
+  // anything the browser would reject. A half-typed value is dropped, so its
+  // property keeps the control's default and the dogs stay where they are.
+  const validInputs = () => {
+    const values = readInputs();
+    for (const prop in values) {
+      if (!isValidValue(prop, values[prop])) delete values[prop];
+    }
     return values;
   };
 
@@ -128,7 +150,33 @@
         if (c.default != null) values[c.property] = c.default;
       });
     }
-    return Object.assign(values, readInputs());
+    return Object.assign(values, validInputs());
+  };
+
+  // The dogs should react to a finished value, not to every keystroke, so the
+  // live preview waits for a pause in typing. Leaving the box, pressing Enter
+  // or hitting Check flushes it immediately; loading or resetting a level
+  // cancels whatever was pending.
+  const PREVIEW_DELAY = 550;
+  let previewTimer = 0;
+
+  const cancelPreview = () => {
+    window.clearTimeout(previewTimer);
+    previewTimer = 0;
+  };
+
+  const flushPreview = () => {
+    if (!previewTimer) return;
+    cancelPreview();
+    updatePlayerLayer(true);
+  };
+
+  const schedulePreview = () => {
+    cancelPreview();
+    previewTimer = window.setTimeout(() => {
+      previewTimer = 0;
+      updatePlayerLayer(true);
+    }, PREVIEW_DELAY);
   };
 
   var REDUCED = false;
@@ -361,9 +409,10 @@
       input.setAttribute("aria-label", ctrl.label);
 
       input.addEventListener("input", () => {
-        updatePlayerLayer(true);
+        schedulePreview();
         clearFeedback();
       });
+      input.addEventListener("blur", flushPreview);
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") { e.preventDefault(); check(); }
       });
@@ -394,7 +443,6 @@
       return;
     }
     current = index;
-    solvedThisLevel = completed.has(index+1);
     hintUsed = false;
     wrongAttempts = 0;
     const level = levelData;
@@ -418,6 +466,7 @@
 
     // Target layer laid out with the kennelParameters; player layer with the defaults.
     applyLayerStyles(el.target, level.kennelParameters);
+    cancelPreview();
     updatePlayerLayer();
 
     // Reset transient UI.
@@ -484,6 +533,8 @@
   // value may be a single string, or an array of accepted alternatives
   // (e.g. justify-content: "end" vs the legacy "flex-end").
   const check = () => {
+    // Show the value being judged before announcing the verdict.
+    flushPreview();
     const solution = LEVELS[current].solution;
     const values = readInputs();
 
@@ -552,13 +603,9 @@
     if (!completed.has(level.id)) {
       completed.add(level.id);
       renderProgress();
-      renderStrip();
-      saveProgress();
-    } else {
-      renderStrip();  // refresh tooltip stars on replay
-      saveProgress();
     }
-    solvedThisLevel = true;
+    renderStrip();  // also refreshes tooltip stars on replay
+    saveProgress();
 
     const isLast = current === LEVELS.length - 1;
     if (isLast && completed.size === LEVELS.length) {
@@ -581,6 +628,7 @@
     inputs.forEach((input) => { input.value = ""; });
     hintUsed = false;
     wrongAttempts = 0;
+    cancelPreview();
     updatePlayerLayer(true);
     clearFeedback();
     el.board.classList.remove("solved");
